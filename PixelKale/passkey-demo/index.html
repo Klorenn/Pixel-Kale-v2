@@ -128,7 +128,9 @@
         <div id="logPanel" class="log-panel">(logs will appear here...)</div>
     </div>
 
-    <script>
+    <script type="module">
+        import { PasskeyIntegration } from './passkey-integration.ts';
+        
         // Configuration
         const config = {
             rpcUrl: 'https://soroban-mainnet.stellar.org',
@@ -138,6 +140,9 @@
             launchtubeJwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyMDcwN2Q3YWJmNTUxN2MyYTZiZTA1Y2JlOGMzZjE2YmE5NTI4NGFmYWM5NDVlN2RkNmY3NTk4MTE2NWJiNTgwIiwiZXhwIjoxNzczNjI5Mjg4LCJjcmVkaXRzIjoxMDAwMDAwMDAwMCwiaWF0IjoxNzU3OTA0NDg4fQ.GVXtIm2mQfg8VrqofupCTFeKtkfCnzIBjR2DnSQQ2Sg',
             kaleContractId: 'CDL74RF5BLYR2YBLCCI7F5FB6TPSCLKEJUBSD2RSVWZ4YHF3VMFAIGWA'
         };
+
+        // Initialize PasskeyIntegration
+        const passkeyIntegration = new PasskeyIntegration(config);
 
         // State
         let keyId = '';
@@ -212,60 +217,52 @@
             return jwt;
         }
 
-        // Simulate passkey operations (since we don't have the actual PasskeyKit loaded)
+        // Real passkey operations using PasskeyIntegration
         async function createWallet() {
             try {
-                log('🔑 Creating wallet...');
-                appendLog('INFO', 'WebAuthn simulation: Creating passkey credentials');
+                log('🔑 Creating wallet with PasskeyKit...');
+                appendLog('INFO', 'Initializing WebAuthn credential creation...');
                 
-                // Simulate WebAuthn credential creation
-                await new Promise(resolve => setTimeout(resolve, 1000));
+                // Use real PasskeyIntegration
+                const result = await passkeyIntegration.createAndSendWallet('PixelKale', 'KALE Farmer');
                 
-                // Generate mock data
-                keyId = 'mock_key_' + Date.now();
-                contractId = 'mock_contract_' + Math.random().toString(36).substr(2, 9);
-                
-                // Store in localStorage
-                localStorage.setItem('pixelkale:keyId', keyId);
-                localStorage.setItem('pixelkale:contractId', contractId);
-                
+                keyId = result.keyId;
+                contractId = result.contractId;
                 isConnected = true;
                 
-                log(`✅ Wallet created successfully!`);
+                // Save to storage
+                passkeyIntegration.saveToStorage(keyId, contractId);
+                
+                log(`✅ Wallet created and deployed successfully!`);
                 appendLog('INFO', `KeyId: ${keyId}`);
                 appendLog('INFO', `ContractId: ${contractId}`);
-                
-                // Simulate transaction submission
-                const jwt = getJWT();
-                if (jwt) {
-                    appendLog('INFO', 'Submitting wallet creation transaction...');
-                    await new Promise(resolve => setTimeout(resolve, 1500));
-                    appendLog('INFO', 'Transaction submitted successfully');
-                }
+                appendLog('INFO', `Transaction Hash: ${result.txHash}`);
+                appendLog('INFO', `Ledger: ${result.ledger}`);
                 
             } catch (e) {
                 log(`❌ Create failed: ${errToString(e)}`);
+                appendLog('ERROR', `Error details: ${e.message}`);
             }
         }
 
         async function connectWallet() {
             try {
-                const storedKeyId = localStorage.getItem('pixelkale:keyId');
-                const storedContractId = localStorage.getItem('pixelkale:contractId');
+                // Load from storage
+                const stored = passkeyIntegration.loadFromStorage();
                 
-                if (!storedKeyId || !storedContractId) {
+                if (!stored) {
                     log('❌ No saved wallet found. Create a wallet first.');
                     return;
                 }
                 
                 log('🔌 Connecting to wallet...');
-                appendLog('INFO', `Connecting to KeyId: ${storedKeyId}`);
+                appendLog('INFO', `Connecting to KeyId: ${stored.keyId}`);
                 
-                // Simulate WebAuthn authentication
-                await new Promise(resolve => setTimeout(resolve, 800));
+                // Use real PasskeyIntegration
+                const result = await passkeyIntegration.connectWallet(stored.keyId, stored.contractId);
                 
-                keyId = storedKeyId;
-                contractId = storedContractId;
+                keyId = result.keyId;
+                contractId = result.contractId;
                 isConnected = true;
                 
                 log(`✅ Connected successfully!`);
@@ -273,6 +270,7 @@
                 
             } catch (e) {
                 log(`❌ Connect failed: ${errToString(e)}`);
+                appendLog('ERROR', `Error details: ${e.message}`);
             }
         }
 
@@ -356,8 +354,7 @@
             keyId = '';
             contractId = '';
             isConnected = false;
-            localStorage.removeItem('pixelkale:keyId');
-            localStorage.removeItem('pixelkale:contractId');
+            passkeyIntegration.clearStorage();
             log('✅ Disconnected');
         }
 
