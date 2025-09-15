@@ -223,11 +223,11 @@ export class HybridPasskeyIntegration {
   }
 
   // Utility functions
-  private toBase64Url(b64) {
+  toBase64Url(b64) {
     return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '');
   }
 
-  private fromBase64Url(u) {
+  fromBase64Url(u) {
     let s = u.replace(/-/g, '+').replace(/_/g, '/');
     while (s.length % 4) s += '=';
     return s;
