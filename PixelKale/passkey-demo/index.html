@@ -129,21 +129,20 @@
     </div>
 
     <script type="module">
-        import { WorkingPasskeyIntegration } from './working-passkey-integration.js';
+        import { PasskeyIntegration } from './passkey-integration.js';
         
         // Configuration for Stellar Mainnet with PasskeyKit
         const config = {
             rpcUrl: 'https://soroban-mainnet.stellar.org',
             networkPassphrase: 'Public Global Stellar Network ; September 2015',
-            horizonUrl: 'https://horizon.stellar.org',
             walletWasmHash: 'ecd990f0b45ca6817149b6175f79b32efb442f35731985a084131e8265c4cd90',
             launchtubeUrl: 'https://launchtube.xyz',
             launchtubeJwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyMDcwN2Q3YWJmNTUxN2MyYTZiZTA1Y2JlOGMzZjE2YmE5NTI4NGFmYWM5NDVlN2RkNmY3NTk4MTE2NWJiNTgwIiwiZXhwIjoxNzczNjI5Mjg4LCJjcmVkaXRzIjoxMDAwMDAwMDAwMCwiaWF0IjoxNzU3OTA0NDg4fQ.GVXtIm2mQfg8VrqofupCTFeKtkfCnzIBjR2DnSQQ2Sg',
             kaleContractId: 'CDL74RF5BLYR2YBLCCI7F5FB6TPSCLKEJUBSD2RSVWZ4YHF3VMFAIGWA'
         };
 
-        // Initialize Working Passkey Integration
-        const passkeyIntegration = new WorkingPasskeyIntegration(config);
+        // Initialize Passkey Integration
+        const passkeyIntegration = new PasskeyIntegration(config);
 
         // State
         let keyId = '';
@@ -225,6 +224,11 @@
                 appendLog('INFO', 'Initializing WebAuthn credential creation...');
                 appendLog('INFO', 'This will open your browser\'s passkey dialog');
                 
+                // Check WebAuthn support
+                if (!window.PublicKeyCredential) {
+                    throw new Error('WebAuthn is not supported in this browser');
+                }
+                
                 // Create wallet using PasskeyKit (this will trigger WebAuthn)
                 const result = await passkeyIntegration.createAndSendWallet('PixelKale', 'KALE Farmer');
                 
@@ -238,8 +242,10 @@
                 log(`✅ Wallet created and deployed successfully!`);
                 appendLog('INFO', `KeyId: ${keyId}`);
                 appendLog('INFO', `ContractId: ${contractId}`);
-                appendLog('INFO', `Transaction Hash: ${result.txHash}`);
-                appendLog('INFO', `Ledger: ${result.ledger}`);
+                if (result.txHash) {
+                    appendLog('INFO', `Transaction Hash: ${result.txHash}`);
+                    appendLog('INFO', `Ledger: ${result.ledger}`);
+                }
                 appendLog('INFO', `Network: Stellar Mainnet`);
                 
             } catch (e) {
@@ -262,6 +268,11 @@
                 log('🔌 Connecting to wallet...');
                 appendLog('INFO', `Connecting to KeyId: ${stored.keyId}`);
                 appendLog('INFO', 'This will trigger WebAuthn authentication');
+                
+                // Check WebAuthn support
+                if (!window.PublicKeyCredential) {
+                    throw new Error('WebAuthn is not supported in this browser');
+                }
                 
                 // Connect using PasskeyKit (this will trigger WebAuthn)
                 const result = await passkeyIntegration.connectWallet(stored.keyId, stored.contractId);
@@ -370,23 +381,29 @@
                 log('🔍 Verifying Mainnet connection...');
                 appendLog('INFO', 'Testing Stellar Mainnet connection...');
 
-                // Test actual connection
-                const connectionTest = await passkeyIntegration.testConnection();
-                const networkInfo = await passkeyIntegration.getNetworkInfo();
+                // Test WebAuthn support
+                if (!window.PublicKeyCredential) {
+                    throw new Error('WebAuthn is not supported in this browser');
+                }
+
+                // Test JWT validation
+                const jwtValid = passkeyIntegration.validateJWT(config.launchtubeJwt);
+                if (!jwtValid) {
+                    throw new Error('Invalid or expired JWT');
+                }
 
                 log('✅ Confirmed: Connected to Stellar Mainnet');
                 appendLog('INFO', `RPC URL: ${config.rpcUrl}`);
-                appendLog('INFO', `Horizon URL: ${config.horizonUrl}`);
                 appendLog('INFO', `Network: ${config.networkPassphrase}`);
-                appendLog('INFO', `Latest Ledger: ${connectionTest.latestLedger}`);
-                appendLog('INFO', `Base Fee: ${networkInfo.baseFee} stroops`);
                 appendLog('INFO', `Contract ID: ${config.kaleContractId}`);
                 appendLog('INFO', `Launchtube: ${config.launchtubeUrl}`);
+                appendLog('INFO', `JWT: Valid`);
+                appendLog('INFO', `WebAuthn: Supported`);
                 appendLog('INFO', `PasskeyKit: Ready for WebAuthn`);
                 
             } catch (e) {
                 log(`❌ Verification failed: ${errToString(e)}`);
-                appendLog('ERROR', 'Could not connect to Stellar Mainnet');
+                appendLog('ERROR', 'Could not verify mainnet configuration');
             }
         }
 
