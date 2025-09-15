@@ -221,13 +221,40 @@
         async function createWallet() {
             try {
                 log('🔑 Creating wallet with PasskeyKit...');
-                appendLog('INFO', 'Initializing WebAuthn credential creation...');
-                appendLog('INFO', 'This will open your browser\'s passkey dialog');
+                appendLog('INFO', 'Checking WebAuthn support...');
                 
-                // Check WebAuthn support
-                if (!window.PublicKeyCredential) {
-                    throw new Error('WebAuthn is not supported in this browser');
+                // Enhanced WebAuthn support check
+                const isWebAuthnSupported = () => {
+                    return !!(window.PublicKeyCredential && 
+                            window.navigator.credentials && 
+                            window.navigator.credentials.create &&
+                            window.navigator.credentials.get);
+                };
+                
+                if (!isWebAuthnSupported()) {
+                    log('⚠️ WebAuthn not fully supported, trying alternative approach...');
+                    appendLog('WARN', 'WebAuthn API not available in this browser');
+                    appendLog('INFO', 'Attempting to create wallet without WebAuthn...');
+                    
+                    // Fallback: Create a simulated wallet for testing
+                    keyId = 'simulated_key_' + Date.now();
+                    contractId = 'simulated_contract_' + Math.random().toString(36).substr(2, 9);
+                    isConnected = true;
+                    
+                    // Save to storage
+                    passkeyIntegration.saveToStorage(keyId, contractId);
+                    
+                    log(`✅ Simulated wallet created for testing!`);
+                    appendLog('INFO', `KeyId: ${keyId}`);
+                    appendLog('INFO', `ContractId: ${contractId}`);
+                    appendLog('INFO', `Network: Stellar Mainnet`);
+                    appendLog('WARN', 'This is a simulated wallet for testing purposes');
+                    appendLog('INFO', 'For full functionality, use a WebAuthn-compatible browser');
+                    return;
                 }
+                
+                appendLog('INFO', 'WebAuthn supported! Initializing credential creation...');
+                appendLog('INFO', 'This will open your browser\'s passkey dialog');
                 
                 // Create wallet using PasskeyKit (this will trigger WebAuthn)
                 const result = await passkeyIntegration.createAndSendWallet('PixelKale', 'KALE Farmer');
@@ -251,7 +278,15 @@
             } catch (e) {
                 log(`❌ Create failed: ${errToString(e)}`);
                 appendLog('ERROR', `Error details: ${e.message}`);
-                appendLog('ERROR', 'Make sure WebAuthn is supported and you have a passkey device');
+                
+                // Provide helpful error messages
+                if (e.message.includes('WebAuthn')) {
+                    appendLog('ERROR', 'WebAuthn is not supported in this browser');
+                    appendLog('INFO', 'Supported browsers: Chrome 67+, Firefox 60+, Safari 13+, Edge 18+');
+                    appendLog('INFO', 'Make sure you are using HTTPS or localhost');
+                } else {
+                    appendLog('ERROR', 'Make sure you have a passkey device and WebAuthn is enabled');
+                }
             }
         }
 
@@ -267,12 +302,31 @@
                 
                 log('🔌 Connecting to wallet...');
                 appendLog('INFO', `Connecting to KeyId: ${stored.keyId}`);
-                appendLog('INFO', 'This will trigger WebAuthn authentication');
                 
-                // Check WebAuthn support
-                if (!window.PublicKeyCredential) {
-                    throw new Error('WebAuthn is not supported in this browser');
+                // Enhanced WebAuthn support check
+                const isWebAuthnSupported = () => {
+                    return !!(window.PublicKeyCredential && 
+                            window.navigator.credentials && 
+                            window.navigator.credentials.create &&
+                            window.navigator.credentials.get);
+                };
+                
+                if (!isWebAuthnSupported()) {
+                    log('⚠️ WebAuthn not supported, using simulated connection...');
+                    appendLog('WARN', 'WebAuthn API not available, using fallback');
+                    
+                    keyId = stored.keyId;
+                    contractId = stored.contractId;
+                    isConnected = true;
+                    
+                    log(`✅ Connected successfully (simulated mode)!`);
+                    appendLog('INFO', `ContractId: ${contractId}`);
+                    appendLog('INFO', `Network: Stellar Mainnet`);
+                    appendLog('WARN', 'This is a simulated connection for testing');
+                    return;
                 }
+                
+                appendLog('INFO', 'WebAuthn supported! This will trigger authentication');
                 
                 // Connect using PasskeyKit (this will trigger WebAuthn)
                 const result = await passkeyIntegration.connectWallet(stored.keyId, stored.contractId);
@@ -288,6 +342,12 @@
             } catch (e) {
                 log(`❌ Connect failed: ${errToString(e)}`);
                 appendLog('ERROR', `Error details: ${e.message}`);
+                
+                // Provide helpful error messages
+                if (e.message.includes('WebAuthn')) {
+                    appendLog('ERROR', 'WebAuthn is not supported in this browser');
+                    appendLog('INFO', 'Supported browsers: Chrome 67+, Firefox 60+, Safari 13+, Edge 18+');
+                }
             }
         }
 
@@ -379,12 +439,15 @@
         async function verifyMainnet() {
             try {
                 log('🔍 Verifying Mainnet connection...');
-                appendLog('INFO', 'Testing Stellar Mainnet connection...');
+                appendLog('INFO', 'Testing Stellar Mainnet configuration...');
 
-                // Test WebAuthn support
-                if (!window.PublicKeyCredential) {
-                    throw new Error('WebAuthn is not supported in this browser');
-                }
+                // Enhanced WebAuthn support check
+                const isWebAuthnSupported = () => {
+                    return !!(window.PublicKeyCredential && 
+                            window.navigator.credentials && 
+                            window.navigator.credentials.create &&
+                            window.navigator.credentials.get);
+                };
 
                 // Test JWT validation
                 const jwtValid = passkeyIntegration.validateJWT(config.launchtubeJwt);
@@ -398,8 +461,15 @@
                 appendLog('INFO', `Contract ID: ${config.kaleContractId}`);
                 appendLog('INFO', `Launchtube: ${config.launchtubeUrl}`);
                 appendLog('INFO', `JWT: Valid`);
-                appendLog('INFO', `WebAuthn: Supported`);
-                appendLog('INFO', `PasskeyKit: Ready for WebAuthn`);
+                
+                if (isWebAuthnSupported()) {
+                    appendLog('INFO', `WebAuthn: Supported`);
+                    appendLog('INFO', `PasskeyKit: Ready for WebAuthn`);
+                } else {
+                    appendLog('WARN', `WebAuthn: Not supported in this browser`);
+                    appendLog('INFO', `Supported browsers: Chrome 67+, Firefox 60+, Safari 13+, Edge 18+`);
+                    appendLog('INFO', `Fallback mode: Simulated wallet for testing`);
+                }
                 
             } catch (e) {
                 log(`❌ Verification failed: ${errToString(e)}`);
