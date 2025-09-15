@@ -89,17 +89,20 @@
       <button id="disconnect">Disconnect</button>
     </div>
     
-    <div class="card" style="background: linear-gradient(45deg, #1a1a2e, #16213e); border: 2px solid #0f3460;">
+    <div class="card" style="background: linear-gradient(45deg, #1a1a2e, #16213e); border: 2px solid #0f3460;">                                                 
         <h2>🌐 Mainnet Verification</h2>
-        <p style="text-align: center; margin-bottom: 16px;">Verify we're on Stellar Mainnet and check the KALE contract</p>
-        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
-            <button id="verifyMainnet" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24);">
+        <p style="text-align: center; margin-bottom: 16px;">Verify we're on Stellar Mainnet and check the KALE contract</p>                                     
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">                                                                       
+            <button id="verifyMainnet" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24);">                                                           
                 🔍 Verify Mainnet
             </button>
-            <button id="openStellarExpert" style="background: linear-gradient(45deg, #4ecdc4, #44a08d);">
+            <button id="testWebAuthn" style="background: linear-gradient(45deg, #9b59b6, #8e44ad);">                                                           
+                🧪 Test WebAuthn
+            </button>
+            <button id="openStellarExpert" style="background: linear-gradient(45deg, #4ecdc4, #44a08d);">                                                       
                 📊 View on Stellar Expert
             </button>
-            <button id="checkContract" style="background: linear-gradient(45deg, #a8e6cf, #7fcdcd);">
+            <button id="checkContract" style="background: linear-gradient(45deg, #a8e6cf, #7fcdcd);">                                                           
                 📋 Check KALE Contract
             </button>
         </div>
@@ -223,18 +226,30 @@
                 log('🔑 Creating wallet with PasskeyKit...');
                 appendLog('INFO', 'Checking WebAuthn support...');
                 
-                // Enhanced WebAuthn support check
-                const isWebAuthnSupported = () => {
-                    return !!(window.PublicKeyCredential && 
-                            window.navigator.credentials && 
-                            window.navigator.credentials.create &&
-                            window.navigator.credentials.get);
+                // Comprehensive WebAuthn support check
+                const checkWebAuthnSupport = () => {
+                    const checks = {
+                        publicKeyCredential: !!window.PublicKeyCredential,
+                        credentials: !!window.navigator.credentials,
+                        create: !!(window.navigator.credentials && window.navigator.credentials.create),
+                        get: !!(window.navigator.credentials && window.navigator.credentials.get),
+                        isSecureContext: window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost'
+                    };
+                    
+                    appendLog('INFO', `WebAuthn Checks:`);
+                    appendLog('INFO', `  PublicKeyCredential: ${checks.publicKeyCredential}`);
+                    appendLog('INFO', `  Navigator.credentials: ${checks.credentials}`);
+                    appendLog('INFO', `  Credentials.create: ${checks.create}`);
+                    appendLog('INFO', `  Credentials.get: ${checks.get}`);
+                    appendLog('INFO', `  Secure Context: ${checks.isSecureContext}`);
+                    
+                    return Object.values(checks).every(check => check);
                 };
                 
-                if (!isWebAuthnSupported()) {
-                    log('⚠️ WebAuthn not fully supported, trying alternative approach...');
-                    appendLog('WARN', 'WebAuthn API not available in this browser');
-                    appendLog('INFO', 'Attempting to create wallet without WebAuthn...');
+                if (!checkWebAuthnSupport()) {
+                    log('⚠️ WebAuthn not fully supported, using fallback...');
+                    appendLog('WARN', 'WebAuthn API not available or incomplete');
+                    appendLog('INFO', 'Creating simulated wallet for testing...');
                     
                     // Fallback: Create a simulated wallet for testing
                     keyId = 'simulated_key_' + Date.now();
@@ -253,10 +268,20 @@
                     return;
                 }
                 
-                appendLog('INFO', 'WebAuthn supported! Initializing credential creation...');
+                appendLog('INFO', 'WebAuthn fully supported! Initializing passkey creation...');
                 appendLog('INFO', 'This will open your browser\'s passkey dialog');
+                appendLog('INFO', 'Make sure you have a passkey device (Touch ID, Face ID, Windows Hello, etc.)');
+                
+                // Test WebAuthn availability first
+                try {
+                    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                    appendLog('INFO', `Platform authenticator available: ${available}`);
+                } catch (e) {
+                    appendLog('WARN', `Could not check platform authenticator: ${e.message}`);
+                }
                 
                 // Create wallet using PasskeyKit (this will trigger WebAuthn)
+                appendLog('INFO', 'Calling PasskeyKit createAndSendWallet...');
                 const result = await passkeyIntegration.createAndSendWallet('PixelKale', 'KALE Farmer');
                 
                 keyId = result.keyId;
@@ -279,13 +304,22 @@
                 log(`❌ Create failed: ${errToString(e)}`);
                 appendLog('ERROR', `Error details: ${e.message}`);
                 
-                // Provide helpful error messages
-                if (e.message.includes('WebAuthn')) {
+                // Provide detailed error messages
+                if (e.message.includes('WebAuthn') || e.message.includes('NotSupportedError')) {
                     appendLog('ERROR', 'WebAuthn is not supported in this browser');
                     appendLog('INFO', 'Supported browsers: Chrome 67+, Firefox 60+, Safari 13+, Edge 18+');
                     appendLog('INFO', 'Make sure you are using HTTPS or localhost');
+                    appendLog('INFO', 'Check if JavaScript is enabled');
+                } else if (e.message.includes('NotAllowedError')) {
+                    appendLog('ERROR', 'Passkey creation was cancelled or not allowed');
+                    appendLog('INFO', 'Make sure you have a passkey device configured');
+                    appendLog('INFO', 'Check your device settings for Touch ID, Face ID, or Windows Hello');
+                } else if (e.message.includes('InvalidStateError')) {
+                    appendLog('ERROR', 'Invalid state for passkey creation');
+                    appendLog('INFO', 'Try refreshing the page and try again');
                 } else {
                     appendLog('ERROR', 'Make sure you have a passkey device and WebAuthn is enabled');
+                    appendLog('INFO', 'Check browser console for more details');
                 }
             }
         }
@@ -435,6 +469,71 @@
             log('✅ Disconnected');
         }
 
+        // Test WebAuthn directly
+        async function testWebAuthn() {
+            try {
+                log('🧪 Testing WebAuthn directly...');
+                appendLog('INFO', 'Testing WebAuthn API availability...');
+                
+                // Check basic WebAuthn support
+                if (!window.PublicKeyCredential) {
+                    throw new Error('PublicKeyCredential not available');
+                }
+                
+                if (!window.navigator.credentials) {
+                    throw new Error('Navigator.credentials not available');
+                }
+                
+                // Test platform authenticator availability
+                const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                appendLog('INFO', `Platform authenticator available: ${available}`);
+                
+                // Test creating a credential (this should open the passkey dialog)
+                appendLog('INFO', 'Attempting to create a test credential...');
+                appendLog('INFO', 'This should open the passkey dialog if everything is working');
+                
+                const credential = await navigator.credentials.create({
+                    publicKey: {
+                        challenge: new Uint8Array(32),
+                        rp: {
+                            name: "PixelKale Test",
+                            id: window.location.hostname
+                        },
+                        user: {
+                            id: new Uint8Array(16),
+                            name: "test@example.com",
+                            displayName: "Test User"
+                        },
+                        pubKeyCredParams: [{alg: -7, type: "public-key"}],
+                        authenticatorSelection: {
+                            authenticatorAttachment: "platform",
+                            userVerification: "required"
+                        },
+                        timeout: 60000
+                    }
+                });
+                
+                log('✅ WebAuthn test successful!');
+                appendLog('INFO', `Credential created: ${credential.id}`);
+                appendLog('INFO', `Type: ${credential.type}`);
+                
+            } catch (e) {
+                log(`❌ WebAuthn test failed: ${errToString(e)}`);
+                appendLog('ERROR', `Error details: ${e.message}`);
+                
+                if (e.name === 'NotSupportedError') {
+                    appendLog('ERROR', 'WebAuthn is not supported in this browser');
+                } else if (e.name === 'NotAllowedError') {
+                    appendLog('ERROR', 'Passkey creation was cancelled or not allowed');
+                    appendLog('INFO', 'Make sure you have a passkey device configured');
+                } else if (e.name === 'InvalidStateError') {
+                    appendLog('ERROR', 'Invalid state for passkey creation');
+                } else {
+                    appendLog('ERROR', `Unexpected error: ${e.name}`);
+                }
+            }
+        }
+
         // Mainnet verification functions
         async function verifyMainnet() {
             try {
@@ -519,6 +618,7 @@
         document.getElementById('work').onclick = workKale;
         document.getElementById('harvest').onclick = harvestKale;
         document.getElementById('verifyMainnet').onclick = verifyMainnet;
+        document.getElementById('testWebAuthn').onclick = testWebAuthn;
         document.getElementById('openStellarExpert').onclick = openStellarExpert;
         document.getElementById('checkContract').onclick = checkContract;
 
