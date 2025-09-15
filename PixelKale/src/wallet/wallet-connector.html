@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelKale - Connect Wallet</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .wallet-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+
+        .wallet-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .wallet-section {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 30px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .wallet-section:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.1);
+        }
+
+        .wallet-section h2 {
+            color: #333;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .wallet-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .wallet-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: white;
+            border-radius: 10px;
+            border: 2px solid #e9ecef;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .wallet-item:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .wallet-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .wallet-item.disabled:hover {
+            border-color: #e9ecef;
+            background: white;
+        }
+
+        .wallet-logo {
+            font-size: 2em;
+            margin-right: 15px;
+            width: 40px;
+            text-align: center;
+        }
+
+        .wallet-info {
+            flex: 1;
+        }
+
+        .wallet-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .wallet-description {
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .wallet-status {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .wallet-status.available {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .wallet-status.unavailable {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .connect-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .connect-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .connect-button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .connection-status {
+            background: #e9ecef;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .connection-status.connected {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .connection-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .account-info {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 2px solid #e9ecef;
+        }
+
+        .account-info h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .account-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .account-detail:last-child {
+            border-bottom: none;
+        }
+
+        .account-detail strong {
+            color: #333;
+        }
+
+        .account-detail span {
+            color: #666;
+            font-family: monospace;
+        }
+
+        .disconnect-button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 15px;
+        }
+
+        .disconnect-button:hover {
+            background: #c82333;
+            transform: translateY(-1px);
+        }
+
+        .network-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .network-button {
+            padding: 10px 20px;
+            border: 2px solid #e9ecef;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .network-button.active {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+
+        .network-button:hover {
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="wallet-container">
+        <div class="header">
+            <h1>🥬 PixelKale</h1>
+            <p>Connect your Stellar wallet to start farming KALE</p>
+        </div>
+
+        <div class="network-selector">
+            <button class="network-button active" data-network="testnet">Testnet</button>
+            <button class="network-button" data-network="mainnet">Mainnet</button>
+        </div>
+
+        <div class="wallet-grid">
+            <div class="wallet-section">
+                <h2>Learn more</h2>
+                <div style="margin-bottom: 20px;">
+                    <h3 style="color: #333; margin-bottom: 10px;">What is a Wallet?</h3>
+                    <p style="color: #666; line-height: 1.6;">
+                        Wallets are used to send, receive, and store the keys you use to sign blockchain transactions.
+                    </p>
+                </div>
+                <div>
+                    <h3 style="color: #333; margin-bottom: 10px;">What is Stellar?</h3>
+                    <p style="color: #666; line-height: 1.6;">
+                        Stellar is a decentralized, public blockchain that gives developers the tools to create experiences that are more like cash than crypto.
+                    </p>
+                </div>
+            </div>
+
+            <div class="wallet-section">
+                <h2>Connect a Wallet</h2>
+                <div class="wallet-list" id="walletList">
+                    <!-- Wallets will be populated by JavaScript -->
+                </div>
+            </div>
+        </div>
+
+        <div class="connection-status" id="connectionStatus" style="display: none;">
+            <div id="statusMessage"></div>
+            <div id="accountInfo" class="account-info" style="display: none;">
+                <h3>Account Information</h3>
+                <div id="accountDetails"></div>
+                <button class="disconnect-button" id="disconnectButton">Disconnect Wallet</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="stellar-wallet-integration.js"></script>
+    <script>
+        // Initialize wallet integration
+        const walletIntegration = new StellarWalletIntegration('testnet');
+        let currentNetwork = 'testnet';
+
+        // Available wallets
+        const wallets = [
+            {
+                name: 'Albedo',
+                id: 'albedo',
+                description: 'Browser-based wallet for Stellar',
+                logo: '🔷',
+                available: true
+            },
+            {
+                name: 'xBull',
+                id: 'xbull',
+                description: 'Mobile wallet for Stellar',
+                logo: '🐂',
+                available: true
+            },
+            {
+                name: 'Ledger',
+                id: 'ledger',
+                description: 'Hardware wallet support',
+                logo: '🔒',
+                available: true
+            },
+            {
+                name: 'LOBSTR',
+                id: 'lobstr',
+                description: 'Mobile wallet for Stellar',
+                logo: '🌊',
+                available: false
+            },
+            {
+                name: 'Rabet',
+                id: 'rabet',
+                description: 'Browser extension wallet',
+                logo: '🐰',
+                available: false
+            }
+        ];
+
+        // Initialize the wallet list
+        function initializeWalletList() {
+            const walletList = document.getElementById('walletList');
+            walletList.innerHTML = '';
+
+            wallets.forEach(wallet => {
+                const walletItem = document.createElement('div');
+                walletItem.className = `wallet-item ${!wallet.available ? 'disabled' : ''}`;
+                walletItem.innerHTML = `
+                    <div class="wallet-logo">${wallet.logo}</div>
+                    <div class="wallet-info">
+                        <div class="wallet-name">${wallet.name}</div>
+                        <div class="wallet-description">${wallet.description}</div>
+                    </div>
+                    <div class="wallet-status ${wallet.available ? 'available' : 'unavailable'}">
+                        ${wallet.available ? 'Available' : 'Not available'}
+                    </div>
+                `;
+
+                if (wallet.available) {
+                    walletItem.addEventListener('click', () => connectWallet(wallet.id));
+                }
+
+                walletList.appendChild(walletItem);
+            });
+        }
+
+        // Connect wallet
+        async function connectWallet(walletType) {
+            try {
+                const statusDiv = document.getElementById('connectionStatus');
+                const statusMessage = document.getElementById('statusMessage');
+                
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'connection-status';
+                statusMessage.textContent = `Connecting to ${walletType}...`;
+
+                const result = await walletIntegration.connectWallet(walletType);
+                
+                if (result.success) {
+                    statusDiv.className = 'connection-status connected';
+                    statusMessage.textContent = `Connected to ${walletType} successfully!`;
+                    
+                    // Load account info
+                    await loadAccountInfo();
+                } else {
+                    statusDiv.className = 'connection-status error';
+                    statusMessage.textContent = `Failed to connect to ${walletType}: ${result.error}`;
+                }
+            } catch (error) {
+                const statusDiv = document.getElementById('connectionStatus');
+                const statusMessage = document.getElementById('statusMessage');
+                
+                statusDiv.style.display = 'block';
+                statusDiv.className = 'connection-status error';
+                statusMessage.textContent = `Connection error: ${error.message}`;
+            }
+        }
+
+        // Load account information
+        async function loadAccountInfo() {
+            try {
+                const result = await walletIntegration.getAccountInfo();
+                
+                if (result.success) {
+                    const accountInfo = document.getElementById('accountInfo');
+                    const accountDetails = document.getElementById('accountDetails');
+                    
+                    accountDetails.innerHTML = `
+                        <div class="account-detail">
+                            <strong>Public Key:</strong>
+                            <span>${result.account.publicKey}</span>
+                        </div>
+                        <div class="account-detail">
+                            <strong>Wallet Type:</strong>
+                            <span>${result.account.walletType}</span>
+                        </div>
+                        <div class="account-detail">
+                            <strong>Network:</strong>
+                            <span>${currentNetwork}</span>
+                        </div>
+                        <div class="account-detail">
+                            <strong>Sequence:</strong>
+                            <span>${result.account.sequence}</span>
+                        </div>
+                        <div class="account-detail">
+                            <strong>Assets:</strong>
+                            <span>${result.account.balance.length}</span>
+                        </div>
+                    `;
+                    
+                    accountInfo.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Failed to load account info:', error);
+            }
+        }
+
+        // Disconnect wallet
+        async function disconnectWallet() {
+            try {
+                const result = await walletIntegration.disconnectWallet();
+                
+                if (result.success) {
+                    const statusDiv = document.getElementById('connectionStatus');
+                    const accountInfo = document.getElementById('accountInfo');
+                    
+                    statusDiv.style.display = 'none';
+                    accountInfo.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Failed to disconnect wallet:', error);
+            }
+        }
+
+        // Switch network
+        function switchNetwork(network) {
+            currentNetwork = network;
+            walletIntegration.switchNetwork(network);
+            
+            // Update network buttons
+            document.querySelectorAll('.network-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-network="${network}"]`).classList.add('active');
+            
+            // Disconnect current wallet if connected
+            if (walletIntegration.isConnected) {
+                disconnectWallet();
+            }
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', () => {
+            initializeWalletList();
+            
+            // Network selector
+            document.querySelectorAll('.network-button').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    switchNetwork(btn.dataset.network);
+                });
+            });
+            
+            // Disconnect button
+            document.getElementById('disconnectButton').addEventListener('click', disconnectWallet);
+        });
+    </script>
+</body>
+</html>

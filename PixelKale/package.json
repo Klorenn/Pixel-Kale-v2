@@ -1,0 +1,50 @@
+{
+  "name": "pixelkale",
+  "version": "1.0.0",
+  "description": "KaleCraft - The first immersive blockchain agriculture experience on Stellar",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "build": "webpack --mode production",
+    "test": "jest",
+    "passkey:config": "node scripts/passkey-print-config.js",
+    "passkey:create": "npx tsx scripts/passkey-create-wallet.ts",
+    "passkey:connect": "npx tsx scripts/passkey-connect-wallet.ts"
+  },
+  "keywords": [
+    "stellar",
+    "blockchain",
+    "farming",
+    "game",
+    "kale",
+    "soroban",
+    "pixel-art",
+    "defi"
+  ],
+  "author": "Klorenn",
+  "license": "MIT",
+  "dependencies": {
+    "@stellar/stellar-sdk": "^13.2.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "passkey-kit": "^0.10.21",
+    "stellar-sdk": "^11.3.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.1",
+    "tsx": "^4.20.5",
+    "webpack": "^5.88.0",
+    "webpack-cli": "^5.1.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Klorenn/PixelKale.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Klorenn/PixelKale/issues"
+  },
+  "homepage": "https://github.com/Klorenn/PixelKale#readme"
+}

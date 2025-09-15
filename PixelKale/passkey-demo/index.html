@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PixelKale Passkey Demo</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 40px auto; 
+            padding: 16px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .card { 
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2); 
+            border-radius: 12px; 
+            padding: 20px; 
+            margin: 16px 0; 
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        button { 
+            padding: 12px 20px; 
+            margin: 8px 8px 8px 0; 
+            cursor: pointer; 
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .status { 
+            background: rgba(0,0,0,0.3); 
+            padding: 16px; 
+            font-family: 'Courier New', monospace; 
+            border-radius: 8px; 
+            border: 1px solid rgba(255,255,255,0.1);
+            min-height: 60px;
+        }
+        .log-panel {
+            background: rgba(0,0,0,0.4);
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 16px;
+            border-radius: 8px;
+            height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid rgba(0,255,0,0.2);
+        }
+        .farm-section {
+            background: linear-gradient(45deg, #8B4513, #A0522D);
+            border: 2px solid #D2691E;
+        }
+        .wallet-section {
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+        }
+        h1, h2, h3 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .emoji {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌱 PixelKale - Passkey Demo</h1>
+    
+    <div class="card wallet-section">
+        <h2>🔑 Wallet Management</h2>
+        <button id="create">Create Wallet</button>
+        <button id="connect">Connect Wallet</button>
+        <button id="status">Show Status</button>
+        <button id="disconnect">Disconnect</button>
+    </div>
+    
+    <div class="card farm-section">
+        <h2>🌾 KALE Farm Operations</h2>
+        <button id="plant">🌱 Plant KALE</button>
+        <button id="work">⛏️ Work KALE</button>
+        <button id="harvest">🌾 Harvest KALE</button>
+    </div>
+    
+    <div class="card">
+        <h3>📊 Status</h3>
+        <div id="out" class="status">Ready to start farming... 🌱</div>
+    </div>
+    
+    <div class="card">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+            <label style="display:flex;align-items:center;gap:6px;">
+                <input id="verbose" type="checkbox" /> Verbose logs
+            </label>
+            <button id="clearLogs">Clear Logs</button>
+            <button id="copyLogs">Copy Logs</button>
+        </div>
+        <div id="logPanel" class="log-panel">(logs will appear here...)</div>
+    </div>
+
+    <script>
+        // Configuration
+        const config = {
+            rpcUrl: 'https://soroban-testnet.stellar.org',
+            networkPassphrase: 'Test SDF Network ; September 2015',
+            walletWasmHash: 'ecd990f0b45ca6817149b6175f79b32efb442f35731985a084131e8265c4cd90',
+            launchtubeUrl: 'https://testnet.launchtube.xyz',
+            kaleContractId: 'CDSWUUXGPWDZG76ISK6SUCVPZJMD5YUV66J2FXFXFGDX25XKZJIEITAO'
+        };
+
+        // State
+        let keyId = '';
+        let contractId = '';
+        let isConnected = false;
+
+        // DOM elements
+        const out = document.getElementById('out');
+        const logPanel = document.getElementById('logPanel');
+        const verboseChk = document.getElementById('verbose');
+        const clearBtn = document.getElementById('clearLogs');
+        const copyBtn = document.getElementById('copyLogs');
+
+        // Logging functions
+        function appendLog(kind, msg) {
+            const timestamp = new Date().toISOString();
+            const line = `[${timestamp}] [${kind}] ${msg}`;
+            logPanel.textContent = (logPanel.textContent || '') + '\n' + line;
+            logPanel.scrollTop = logPanel.scrollHeight;
+            
+            if (kind === 'ERROR') console.error(msg);
+            else if (kind === 'WARN') console.warn(msg);
+            else console.log(msg);
+        }
+
+        function log(msg) {
+            out.textContent = msg;
+            appendLog('INFO', msg);
+        }
+
+        function errToString(e) {
+            if (!e) return 'Unknown error';
+            if (typeof e === 'string') return e;
+            if (e instanceof Error) return e.message;
+            return JSON.stringify(e);
+        }
+
+        // JWT validation
+        function validateJWT(jwt) {
+            try {
+                const parts = jwt.split('.');
+                if (parts.length !== 3) return false;
+                
+                const payload = JSON.parse(atob(parts[1]));
+                const now = Math.floor(Date.now() / 1000);
+                
+                if (now > payload.exp) {
+                    appendLog('ERROR', 'JWT expired');
+                    return false;
+                }
+                
+                return true;
+            } catch (e) {
+                appendLog('ERROR', `Invalid JWT: ${e}`);
+                return false;
+            }
+        }
+
+        // Get JWT from user
+        function getJWT() {
+            let jwt = localStorage.getItem('pixelkale:lt_jwt');
+            if (!jwt || !validateJWT(jwt)) {
+                jwt = prompt('Enter Launchtube JWT (get from https://testnet.launchtube.xyz/gen):');
+                if (jwt && validateJWT(jwt)) {
+                    localStorage.setItem('pixelkale:lt_jwt', jwt);
+                    appendLog('INFO', 'JWT stored successfully');
+                } else {
+                    appendLog('ERROR', 'Invalid JWT provided');
+                    return null;
+                }
+            }
+            return jwt;
+        }
+
+        // Simulate passkey operations (since we don't have the actual PasskeyKit loaded)
+        async function createWallet() {
+            try {
+                log('🔑 Creating wallet...');
+                appendLog('INFO', 'WebAuthn simulation: Creating passkey credentials');
+                
+                // Simulate WebAuthn credential creation
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                // Generate mock data
+                keyId = 'mock_key_' + Date.now();
+                contractId = 'mock_contract_' + Math.random().toString(36).substr(2, 9);
+                
+                // Store in localStorage
+                localStorage.setItem('pixelkale:keyId', keyId);
+                localStorage.setItem('pixelkale:contractId', contractId);
+                
+                isConnected = true;
+                
+                log(`✅ Wallet created successfully!`);
+                appendLog('INFO', `KeyId: ${keyId}`);
+                appendLog('INFO', `ContractId: ${contractId}`);
+                
+                // Simulate transaction submission
+                const jwt = getJWT();
+                if (jwt) {
+                    appendLog('INFO', 'Submitting wallet creation transaction...');
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    appendLog('INFO', 'Transaction submitted successfully');
+                }
+                
+            } catch (e) {
+                log(`❌ Create failed: ${errToString(e)}`);
+            }
+        }
+
+        async function connectWallet() {
+            try {
+                const storedKeyId = localStorage.getItem('pixelkale:keyId');
+                const storedContractId = localStorage.getItem('pixelkale:contractId');
+                
+                if (!storedKeyId || !storedContractId) {
+                    log('❌ No saved wallet found. Create a wallet first.');
+                    return;
+                }
+                
+                log('🔌 Connecting to wallet...');
+                appendLog('INFO', `Connecting to KeyId: ${storedKeyId}`);
+                
+                // Simulate WebAuthn authentication
+                await new Promise(resolve => setTimeout(resolve, 800));
+                
+                keyId = storedKeyId;
+                contractId = storedContractId;
+                isConnected = true;
+                
+                log(`✅ Connected successfully!`);
+                appendLog('INFO', `ContractId: ${contractId}`);
+                
+            } catch (e) {
+                log(`❌ Connect failed: ${errToString(e)}`);
+            }
+        }
+
+        async function plantKale() {
+            try {
+                if (!isConnected) {
+                    log('❌ No wallet connected. Create or connect wallet first.');
+                    return;
+                }
+                
+                log('🌱 Planting KALE...');
+                appendLog('INFO', `Planting KALE on contract: ${contractId}`);
+                
+                // Simulate contract call
+                await new Promise(resolve => setTimeout(resolve, 1200));
+                
+                log('✅ KALE planted successfully!');
+                appendLog('INFO', 'KALE seeds planted. Start working to grow them!');
+                
+            } catch (e) {
+                log(`❌ Plant failed: ${errToString(e)}`);
+            }
+        }
+
+        async function workKale() {
+            try {
+                if (!isConnected) {
+                    log('❌ No wallet connected. Create or connect wallet first.');
+                    return;
+                }
+                
+                log('⛏️ Working on KALE...');
+                appendLog('INFO', `Working on KALE for contract: ${contractId}`);
+                
+                // Simulate proof of work
+                appendLog('INFO', 'Generating proof of work...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                log('✅ KALE work completed!');
+                appendLog('INFO', 'Proof of work verified. KALE is ready for harvest!');
+                
+            } catch (e) {
+                log(`❌ Work failed: ${errToString(e)}`);
+            }
+        }
+
+        async function harvestKale() {
+            try {
+                if (!isConnected) {
+                    log('❌ No wallet connected. Create or connect wallet first.');
+                    return;
+                }
+                
+                log('🌾 Harvesting KALE...');
+                appendLog('INFO', `Harvesting KALE from contract: ${contractId}`);
+                
+                // Simulate harvest
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                
+                const reward = Math.floor(Math.random() * 1000) + 100;
+                log(`✅ Harvested ${reward} KALE tokens!`);
+                appendLog('INFO', `Reward: ${reward} KALE tokens`);
+                
+            } catch (e) {
+                log(`❌ Harvest failed: ${errToString(e)}`);
+            }
+        }
+
+        function showStatus() {
+            const status = {
+                connected: isConnected,
+                keyId: keyId || 'None',
+                contractId: contractId || 'None',
+                config: config
+            };
+            
+            log(`📊 Status: ${JSON.stringify(status, null, 2)}`);
+        }
+
+        function disconnect() {
+            keyId = '';
+            contractId = '';
+            isConnected = false;
+            localStorage.removeItem('pixelkale:keyId');
+            localStorage.removeItem('pixelkale:contractId');
+            log('✅ Disconnected');
+        }
+
+        // Event listeners
+        document.getElementById('create').onclick = createWallet;
+        document.getElementById('connect').onclick = connectWallet;
+        document.getElementById('status').onclick = showStatus;
+        document.getElementById('disconnect').onclick = disconnect;
+        document.getElementById('plant').onclick = plantKale;
+        document.getElementById('work').onclick = workKale;
+        document.getElementById('harvest').onclick = harvestKale;
+
+        clearBtn.onclick = () => { 
+            logPanel.textContent = '(logs cleared)'; 
+        };
+
+        copyBtn.onclick = async () => {
+            const text = logPanel.textContent + '\n\nCurrent config:\n' + JSON.stringify(config, null, 2);
+            try { 
+                await navigator.clipboard.writeText(text); 
+                appendLog('INFO', 'Logs copied to clipboard'); 
+            } catch (e) {
+                appendLog('ERROR', 'Failed to copy logs');
+            }
+        };
+
+        // Initialize
+        appendLog('INFO', 'PixelKale Passkey Demo loaded');
+        appendLog('INFO', 'Ready to create or connect wallet');
+        
+        // Check for existing wallet
+        const existingKeyId = localStorage.getItem('pixelkale:keyId');
+        if (existingKeyId) {
+            appendLog('INFO', `Found existing wallet: ${existingKeyId}`);
+            log('Found existing wallet. Click "Connect Wallet" to use it.');
+        }
+    </script>
+</body>
+</html>

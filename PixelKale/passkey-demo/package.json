@@ -1,0 +1,20 @@
+{
+  "name": "pixelkale-passkey-demo",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 5173"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^13.3.0",
+    "passkey-kit": "^0.10.24"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3",
+    "vite": "^5.3.4"
+  }
+}
+

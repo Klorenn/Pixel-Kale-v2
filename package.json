@@ -1,0 +1,35 @@
+{
+  "name": "top-kale-smart-contract",
+  "version": "1.0.0",
+  "description": "KALE Farming on Stellar Network with Soroban Smart Contracts",
+  "main": "PixelKale/src/index.js",
+  "scripts": {
+    "start": "cd PixelKale && npm start",
+    "dev": "cd PixelKale && npm run dev",
+    "build": "cd contracts/kale_farm && cargo build --target wasm32-unknown-unknown --release",
+    "deploy:testnet": "cd PixelKale && node scripts/deploy-contracts.js testnet",
+    "deploy:mainnet": "cd PixelKale && node scripts/deploy-contracts.js mainnet",
+    "test": "cd PixelKale && npm test",
+    "install:all": "npm install && cd PixelKale && npm install",
+    "clean": "rm -rf target/ && rm -rf PixelKale/node_modules/ && rm -rf node_modules/"
+  },
+  "keywords": [
+    "stellar",
+    "blockchain",
+    "farming",
+    "kale",
+    "soroban",
+    "defi",
+    "smart-contracts"
+  ],
+  "author": "Klorenn",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Klorenn/Top-Kale-Smart-Contract.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Klorenn/Top-Kale-Smart-Contract/issues"
+  },
+  "homepage": "https://github.com/Klorenn/Top-Kale-Smart-Contract#readme"
+}
