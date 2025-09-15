@@ -220,67 +220,25 @@
             return jwt;
         }
 
-        // Create wallet with PasskeyKit and WebAuthn
+        // Create wallet with PasskeyKit and @simplewebauthn/browser
         async function createWallet() {
             try {
                 log('🔑 Creating wallet with PasskeyKit...');
-                appendLog('INFO', 'Checking WebAuthn support...');
+                appendLog('INFO', 'Using @simplewebauthn/browser for WebAuthn...');
                 
-                // Comprehensive WebAuthn support check
-                const checkWebAuthnSupport = () => {
-                    const checks = {
-                        publicKeyCredential: !!window.PublicKeyCredential,
-                        credentials: !!window.navigator.credentials,
-                        create: !!(window.navigator.credentials && window.navigator.credentials.create),
-                        get: !!(window.navigator.credentials && window.navigator.credentials.get),
-                        isSecureContext: window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost'
-                    };
-                    
-                    appendLog('INFO', `WebAuthn Checks:`);
-                    appendLog('INFO', `  PublicKeyCredential: ${checks.publicKeyCredential}`);
-                    appendLog('INFO', `  Navigator.credentials: ${checks.credentials}`);
-                    appendLog('INFO', `  Credentials.create: ${checks.create}`);
-                    appendLog('INFO', `  Credentials.get: ${checks.get}`);
-                    appendLog('INFO', `  Secure Context: ${checks.isSecureContext}`);
-                    
-                    return Object.values(checks).every(check => check);
-                };
+                // Check if we're in a secure context
+                const isSecureContext = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
+                appendLog('INFO', `Secure Context: ${isSecureContext}`);
                 
-                if (!checkWebAuthnSupport()) {
-                    log('⚠️ WebAuthn not fully supported, using fallback...');
-                    appendLog('WARN', 'WebAuthn API not available or incomplete');
-                    appendLog('INFO', 'Creating simulated wallet for testing...');
-                    
-                    // Fallback: Create a simulated wallet for testing
-                    keyId = 'simulated_key_' + Date.now();
-                    contractId = 'simulated_contract_' + Math.random().toString(36).substr(2, 9);
-                    isConnected = true;
-                    
-                    // Save to storage
-                    passkeyIntegration.saveToStorage(keyId, contractId);
-                    
-                    log(`✅ Simulated wallet created for testing!`);
-                    appendLog('INFO', `KeyId: ${keyId}`);
-                    appendLog('INFO', `ContractId: ${contractId}`);
-                    appendLog('INFO', `Network: Stellar Mainnet`);
-                    appendLog('WARN', 'This is a simulated wallet for testing purposes');
-                    appendLog('INFO', 'For full functionality, use a WebAuthn-compatible browser');
-                    return;
+                if (!isSecureContext) {
+                    throw new Error('WebAuthn requires a secure context (HTTPS or localhost)');
                 }
                 
-                appendLog('INFO', 'WebAuthn fully supported! Initializing passkey creation...');
+                appendLog('INFO', 'Initializing passkey creation with @simplewebauthn/browser...');
                 appendLog('INFO', 'This will open your browser\'s passkey dialog');
                 appendLog('INFO', 'Make sure you have a passkey device (Touch ID, Face ID, Windows Hello, etc.)');
                 
-                // Test WebAuthn availability first
-                try {
-                    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-                    appendLog('INFO', `Platform authenticator available: ${available}`);
-                } catch (e) {
-                    appendLog('WARN', `Could not check platform authenticator: ${e.message}`);
-                }
-                
-                // Create wallet using PasskeyKit (this will trigger WebAuthn)
+                // Create wallet using PasskeyKit with @simplewebauthn/browser
                 appendLog('INFO', 'Calling PasskeyKit createAndSendWallet...');
                 const result = await passkeyIntegration.createAndSendWallet('PixelKale', 'KALE Farmer');
                 
@@ -305,11 +263,10 @@
                 appendLog('ERROR', `Error details: ${e.message}`);
                 
                 // Provide detailed error messages
-                if (e.message.includes('WebAuthn') || e.message.includes('NotSupportedError')) {
+                if (e.message.includes('NotSupportedError')) {
                     appendLog('ERROR', 'WebAuthn is not supported in this browser');
                     appendLog('INFO', 'Supported browsers: Chrome 67+, Firefox 60+, Safari 13+, Edge 18+');
                     appendLog('INFO', 'Make sure you are using HTTPS or localhost');
-                    appendLog('INFO', 'Check if JavaScript is enabled');
                 } else if (e.message.includes('NotAllowedError')) {
                     appendLog('ERROR', 'Passkey creation was cancelled or not allowed');
                     appendLog('INFO', 'Make sure you have a passkey device configured');
@@ -317,6 +274,9 @@
                 } else if (e.message.includes('InvalidStateError')) {
                     appendLog('ERROR', 'Invalid state for passkey creation');
                     appendLog('INFO', 'Try refreshing the page and try again');
+                } else if (e.message.includes('secure context')) {
+                    appendLog('ERROR', 'WebAuthn requires a secure context');
+                    appendLog('INFO', 'Use HTTPS or localhost to enable WebAuthn');
                 } else {
                     appendLog('ERROR', 'Make sure you have a passkey device and WebAuthn is enabled');
                     appendLog('INFO', 'Check browser console for more details');
@@ -337,32 +297,17 @@
                 log('🔌 Connecting to wallet...');
                 appendLog('INFO', `Connecting to KeyId: ${stored.keyId}`);
                 
-                // Enhanced WebAuthn support check
-                const isWebAuthnSupported = () => {
-                    return !!(window.PublicKeyCredential && 
-                            window.navigator.credentials && 
-                            window.navigator.credentials.create &&
-                            window.navigator.credentials.get);
-                };
+                // Check secure context
+                const isSecureContext = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
+                appendLog('INFO', `Secure Context: ${isSecureContext}`);
                 
-                if (!isWebAuthnSupported()) {
-                    log('⚠️ WebAuthn not supported, using simulated connection...');
-                    appendLog('WARN', 'WebAuthn API not available, using fallback');
-                    
-                    keyId = stored.keyId;
-                    contractId = stored.contractId;
-                    isConnected = true;
-                    
-                    log(`✅ Connected successfully (simulated mode)!`);
-                    appendLog('INFO', `ContractId: ${contractId}`);
-                    appendLog('INFO', `Network: Stellar Mainnet`);
-                    appendLog('WARN', 'This is a simulated connection for testing');
-                    return;
+                if (!isSecureContext) {
+                    throw new Error('WebAuthn requires a secure context (HTTPS or localhost)');
                 }
                 
-                appendLog('INFO', 'WebAuthn supported! This will trigger authentication');
+                appendLog('INFO', 'Using @simplewebauthn/browser for authentication');
                 
-                // Connect using PasskeyKit (this will trigger WebAuthn)
+                // Connect using PasskeyKit with @simplewebauthn/browser
                 const result = await passkeyIntegration.connectWallet(stored.keyId, stored.contractId);
                 
                 keyId = result.keyId;
@@ -378,9 +323,15 @@
                 appendLog('ERROR', `Error details: ${e.message}`);
                 
                 // Provide helpful error messages
-                if (e.message.includes('WebAuthn')) {
+                if (e.message.includes('NotSupportedError')) {
                     appendLog('ERROR', 'WebAuthn is not supported in this browser');
                     appendLog('INFO', 'Supported browsers: Chrome 67+, Firefox 60+, Safari 13+, Edge 18+');
+                } else if (e.message.includes('NotAllowedError')) {
+                    appendLog('ERROR', 'Passkey authentication was cancelled or not allowed');
+                    appendLog('INFO', 'Make sure you have a passkey device configured');
+                } else if (e.message.includes('secure context')) {
+                    appendLog('ERROR', 'WebAuthn requires a secure context');
+                    appendLog('INFO', 'Use HTTPS or localhost to enable WebAuthn');
                 }
             }
         }
@@ -469,53 +420,51 @@
             log('✅ Disconnected');
         }
 
-        // Test WebAuthn directly
+        // Test WebAuthn directly with @simplewebauthn/browser
         async function testWebAuthn() {
             try {
-                log('🧪 Testing WebAuthn directly...');
-                appendLog('INFO', 'Testing WebAuthn API availability...');
+                log('🧪 Testing WebAuthn with @simplewebauthn/browser...');
+                appendLog('INFO', 'Testing @simplewebauthn/browser availability...');
                 
-                // Check basic WebAuthn support
-                if (!window.PublicKeyCredential) {
-                    throw new Error('PublicKeyCredential not available');
+                // Check secure context
+                const isSecureContext = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
+                appendLog('INFO', `Secure Context: ${isSecureContext}`);
+                
+                if (!isSecureContext) {
+                    throw new Error('WebAuthn requires a secure context (HTTPS or localhost)');
                 }
                 
-                if (!window.navigator.credentials) {
-                    throw new Error('Navigator.credentials not available');
-                }
-                
-                // Test platform authenticator availability
-                const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-                appendLog('INFO', `Platform authenticator available: ${available}`);
-                
-                // Test creating a credential (this should open the passkey dialog)
-                appendLog('INFO', 'Attempting to create a test credential...');
+                // Test using @simplewebauthn/browser directly
+                appendLog('INFO', 'Testing @simplewebauthn/browser startRegistration...');
                 appendLog('INFO', 'This should open the passkey dialog if everything is working');
                 
-                const credential = await navigator.credentials.create({
-                    publicKey: {
-                        challenge: new Uint8Array(32),
+                const { startRegistration } = await import('@simplewebauthn/browser');
+                
+                const rawResponse = await startRegistration({
+                    optionsJSON: {
+                        challenge: 'dGVzdC1jaGFsbGVuZ2U', // base64url encoded "test-challenge"
                         rp: {
-                            name: "PixelKale Test",
-                            id: window.location.hostname
+                            id: window.location.hostname,
+                            name: "PixelKale Test"
                         },
                         user: {
-                            id: new Uint8Array(16),
+                            id: 'dGVzdC11c2VyLWlk', // base64url encoded "test-user-id"
                             name: "test@example.com",
                             displayName: "Test User"
                         },
-                        pubKeyCredParams: [{alg: -7, type: "public-key"}],
+                        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
                         authenticatorSelection: {
                             authenticatorAttachment: "platform",
-                            userVerification: "required"
+                            userVerification: "preferred"
                         },
                         timeout: 60000
                     }
                 });
                 
                 log('✅ WebAuthn test successful!');
-                appendLog('INFO', `Credential created: ${credential.id}`);
-                appendLog('INFO', `Type: ${credential.type}`);
+                appendLog('INFO', `Credential created: ${rawResponse.id}`);
+                appendLog('INFO', `Type: ${rawResponse.type}`);
+                appendLog('INFO', 'Raw response received from @simplewebauthn/browser');
                 
             } catch (e) {
                 log(`❌ WebAuthn test failed: ${errToString(e)}`);
@@ -523,13 +472,18 @@
                 
                 if (e.name === 'NotSupportedError') {
                     appendLog('ERROR', 'WebAuthn is not supported in this browser');
+                    appendLog('INFO', 'Supported browsers: Chrome 67+, Firefox 60+, Safari 13+, Edge 18+');
                 } else if (e.name === 'NotAllowedError') {
                     appendLog('ERROR', 'Passkey creation was cancelled or not allowed');
                     appendLog('INFO', 'Make sure you have a passkey device configured');
                 } else if (e.name === 'InvalidStateError') {
                     appendLog('ERROR', 'Invalid state for passkey creation');
+                } else if (e.message.includes('secure context')) {
+                    appendLog('ERROR', 'WebAuthn requires a secure context');
+                    appendLog('INFO', 'Use HTTPS or localhost to enable WebAuthn');
                 } else {
-                    appendLog('ERROR', `Unexpected error: ${e.name}`);
+                    appendLog('ERROR', `Unexpected error: ${e.name || 'Unknown'}`);
+                    appendLog('INFO', 'Check browser console for more details');
                 }
             }
         }

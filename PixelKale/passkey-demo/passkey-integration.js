@@ -1,5 +1,6 @@
-// Exact PasskeyKit Integration - Converted from TypeScript to JavaScript
+// Real PasskeyKit Integration using @simplewebauthn/browser
 import { PasskeyKit, PasskeyServer } from 'passkey-kit';
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 
 export class PasskeyIntegration {
   constructor(config) {
@@ -13,8 +14,11 @@ export class PasskeyIntegration {
       rpcUrl: this.config.rpcUrl,
       networkPassphrase: this.config.networkPassphrase,
       walletWasmHash: this.config.walletWasmHash,
-      rpId: this.config.rpId,
       timeoutInSeconds: this.config.timeoutInSeconds,
+      WebAuthn: {
+        startRegistration,
+        startAuthentication
+      }
     });
 
     this.server = new PasskeyServer({

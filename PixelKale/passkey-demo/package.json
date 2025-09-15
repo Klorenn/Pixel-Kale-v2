@@ -9,6 +9,7 @@
     "preview": "vite preview --port 5173"
   },
   "dependencies": {
+    "@simplewebauthn/browser": "^13.2.0",
     "@stellar/stellar-sdk": "^13.3.0",
     "passkey-kit": "^0.10.24"
   },
@@ -17,4 +18,3 @@
     "vite": "^5.3.4"
   }
 }
-
