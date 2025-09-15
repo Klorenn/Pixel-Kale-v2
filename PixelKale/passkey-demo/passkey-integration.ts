@@ -29,12 +29,16 @@ export class PasskeyIntegration {
       ...config
     };
 
+    // Configure for mainnet
     this.account = new PasskeyKit({
       rpcUrl: this.config.rpcUrl,
       networkPassphrase: this.config.networkPassphrase,
       walletWasmHash: this.config.walletWasmHash,
       rpId: this.config.rpId,
       timeoutInSeconds: this.config.timeoutInSeconds,
+      // Add mainnet specific configuration
+      horizonUrl: 'https://horizon.stellar.org',
+      allowHttp: false,
     });
 
     this.server = new PasskeyServer({
@@ -42,6 +46,8 @@ export class PasskeyIntegration {
       launchtubeUrl: this.config.launchtubeUrl,
       launchtubeJwt: this.config.launchtubeJwt,
       forwardOnChain: true,
+      // Add mainnet specific configuration
+      horizonUrl: 'https://horizon.stellar.org',
     });
   }
 
