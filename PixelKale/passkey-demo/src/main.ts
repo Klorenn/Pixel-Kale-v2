@@ -7,7 +7,7 @@ const config = {
   walletWasmHash: 'ecd990f0b45ca6817149b6175f79b32efb442f35731985a084131e8265c4cd90',
   // Prefer official mainnet domain to avoid CORS issues
   launchtubeUrl: (import.meta as any).env?.VITE_LAUNCHTUBE_URL || 'https://launchtube.xyz',
-  launchtubeJwt: (import.meta as any).env?.VITE_LAUNCHTUBE_JWT || localStorage.getItem('pixelkale:lt_jwt') || '',
+  launchtubeJwt: (import.meta as any).env?.VITE_LAUNCHTUBE_JWT || localStorage.getItem('pixelkale:lt_jwt') || 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyMDcwN2Q3YWJmNTUxN2MyYTZiZTA1Y2JlOGMzZjE2YmE5NTI4NGFmYWM5NDVlN2RkNmY3NTk4MTE2NWJiNTgwIiwiZXhwIjoxNzczNjI5Mjg4LCJjcmVkaXRzIjoxMDAwMDAwMDAwMCwiaWF0IjoxNzU3OTA0NDg4fQ.GVXtIm2mQfg8VrqofupCTFeKtkfCnzIBjR2DnSQQ2Sg',
 };
 
 const account = new PasskeyKit({
