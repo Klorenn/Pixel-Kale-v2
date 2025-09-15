@@ -1,12 +1,12 @@
 import { PasskeyKit, PasskeyServer } from 'passkey-kit';
 
 const config = {
-  rpcUrl: 'https://soroban-testnet.stellar.org',
-  networkPassphrase: 'Test SDF Network ; September 2015',
-  // Passkey wallet WASM hash known on testnet (from official demo)
+  rpcUrl: 'https://soroban-mainnet.stellar.org',
+  networkPassphrase: 'Public Global Stellar Network ; September 2015',
+  // Passkey wallet WASM hash known on mainnet (from official demo)
   walletWasmHash: 'ecd990f0b45ca6817149b6175f79b32efb442f35731985a084131e8265c4cd90',
-  // Prefer official testnet domain to avoid CORS issues
-  launchtubeUrl: (import.meta as any).env?.VITE_LAUNCHTUBE_URL || 'https://testnet.launchtube.xyz',
+  // Prefer official mainnet domain to avoid CORS issues
+  launchtubeUrl: (import.meta as any).env?.VITE_LAUNCHTUBE_URL || 'https://launchtube.xyz',
   launchtubeJwt: (import.meta as any).env?.VITE_LAUNCHTUBE_JWT || localStorage.getItem('pixelkale:lt_jwt') || '',
 };
 
@@ -82,8 +82,8 @@ if (!config.launchtubeJwt) {
       config.launchtubeJwt = pasted;
       appendLog('INFO', 'JWT stored successfully');
     } else {
-      appendLog('ERROR', 'Invalid JWT provided. Please get a new one from https://testnet.launchtube.xyz/gen');
-      alert('JWT inválido. Por favor, obtén uno nuevo desde https://testnet.launchtube.xyz/gen');
+      appendLog('ERROR', 'Invalid JWT provided. Please get a new one from https://launchtube.xyz/gen');
+      alert('JWT inválido. Por favor, obtén uno nuevo desde https://launchtube.xyz/gen');
     }
   }
 } else if (!validateJWT(config.launchtubeJwt)) {

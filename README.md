@@ -87,15 +87,16 @@ Top-Kale-Smart-Contract/
 
 ## 🌐 Network Configuration
 
-### Testnet
-- **Contract ID**: `CDSWUUXGPWDZG76ISKSUCVPZJMD5YUV66J2FXFXFGDX25XKZJIEITAO`
-- **Network**: Stellar Testnet
-- **Horizon**: `https://horizon-testnet.stellar.org`
-
-### Mainnet
+### Mainnet (Active)
 - **Contract ID**: `CDL74RF5BLYR2YBLCCI7F5FB6TPSCLKEJUBSD2RSVWZ4YHF3VMFAIGWA`
 - **Network**: Stellar Mainnet
 - **Horizon**: `https://horizon.stellar.org`
+- **RPC**: `https://soroban-mainnet.stellar.org`
+
+### Testnet (Available)
+- **Contract ID**: `CDSWUUXGPWDZG76ISKSUCVPZJMD5YUV66J2FXFXFGDX25XKZJIEITAO`
+- **Network**: Stellar Testnet
+- **Horizon**: `https://horizon-testnet.stellar.org`
 
 ## 🌱 KALE Farming
 

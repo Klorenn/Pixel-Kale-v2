@@ -3,12 +3,12 @@ import { PasskeyKit, PasskeyServer } from "passkey-kit";
 
 // Configuration matching the do-math example
 const config = {
-    rpcUrl: 'https://soroban-testnet.stellar.org',
-    networkPassphrase: 'Test SDF Network ; September 2015',
+    rpcUrl: 'https://soroban-mainnet.stellar.org',
+    networkPassphrase: 'Public Global Stellar Network ; September 2015',
     walletWasmHash: 'b62f62217ff256d557513793e9e44317b25b14401a8a6b6149a04d38d72d6c7c',
-    launchtubeUrl: 'https://launchtube.sdf-ecosystem.workers.dev',
+    launchtubeUrl: 'https://launchtube.xyz',
     launchtubeJwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI5ZWJlOGNiMTIwYTQ1ZmJmMGU4YmMzZGYzODgxOTc2MGRhMWJlZDFjYTc3ZWYyMzk3YzYzNjY0ODk0NTdmNjc2IiwiZXhwIjoxNzUyNTA0NzMzLCJjcmVkaXRzIjoxMDAwMDAwMDAwLCJpYXQiOjE3NDUyNDcxMzN9.WSwj28KvHvd1xIzhdCY98HuJJZ_0329kRLbUn7wDDDA',
-    kaleContractId: 'CDSWUUXGPWDZG76ISK6SUCVPZJMD5YUV66J2FXFXFGDX25XKZJIEITAO'
+    kaleContractId: 'CDL74RF5BLYR2YBLCCI7F5FB6TPSCLKEJUBSD2RSVWZ4YHF3VMFAIGWA'
 };
 
 // Initialize PasskeyKit (exactly like do-math example)

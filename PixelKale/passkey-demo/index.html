@@ -115,11 +115,11 @@
     <script>
         // Configuration
         const config = {
-            rpcUrl: 'https://soroban-testnet.stellar.org',
-            networkPassphrase: 'Test SDF Network ; September 2015',
+            rpcUrl: 'https://soroban-mainnet.stellar.org',
+            networkPassphrase: 'Public Global Stellar Network ; September 2015',
             walletWasmHash: 'ecd990f0b45ca6817149b6175f79b32efb442f35731985a084131e8265c4cd90',
-            launchtubeUrl: 'https://testnet.launchtube.xyz',
-            kaleContractId: 'CDSWUUXGPWDZG76ISK6SUCVPZJMD5YUV66J2FXFXFGDX25XKZJIEITAO'
+            launchtubeUrl: 'https://launchtube.xyz',
+            kaleContractId: 'CDL74RF5BLYR2YBLCCI7F5FB6TPSCLKEJUBSD2RSVWZ4YHF3VMFAIGWA'
         };
 
         // State
@@ -183,7 +183,7 @@
         function getJWT() {
             let jwt = localStorage.getItem('pixelkale:lt_jwt');
             if (!jwt || !validateJWT(jwt)) {
-                jwt = prompt('Enter Launchtube JWT (get from https://testnet.launchtube.xyz/gen):');
+                jwt = prompt('Enter Launchtube JWT (get from https://launchtube.xyz/gen):');
                 if (jwt && validateJWT(jwt)) {
                     localStorage.setItem('pixelkale:lt_jwt', jwt);
                     appendLog('INFO', 'JWT stored successfully');

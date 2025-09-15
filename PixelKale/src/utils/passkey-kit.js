@@ -8,12 +8,12 @@ require('dotenv').config();
 
 // Configuration from environment
 const config = {
-    rpcUrl: process.env.PUBLIC_RPC_URL || 'https://soroban-testnet.stellar.org',
-    networkPassphrase: process.env.PUBLIC_NETWORK_PASSPHRASE || 'Test SDF Network ; September 2015',
+    rpcUrl: process.env.PUBLIC_RPC_URL || 'https://soroban-mainnet.stellar.org',
+    networkPassphrase: process.env.PUBLIC_NETWORK_PASSPHRASE || 'Public Global Stellar Network ; September 2015',
     walletWasmHash: process.env.PUBLIC_WALLET_WASM_HASH || '',
-    launchtubeUrl: process.env.PUBLIC_LAUNCHTUBE_URL || 'https://testnet.launchtube.xyz',
+    launchtubeUrl: process.env.PUBLIC_LAUNCHTUBE_URL || 'https://launchtube.xyz',
     launchtubeJwt: process.env.PUBLIC_LAUNCHTUBE_JWT || '',
-    kaleContractId: process.env.PUBLIC_KALE_CONTRACT_ID || 'CDSWUUXGPWDZG76ISK6SUCVPZJMD5YUV66J2FXFXFGDX25XKZJIEITAO'
+    kaleContractId: process.env.PUBLIC_KALE_CONTRACT_ID || 'CDL74RF5BLYR2YBLCCI7F5FB6TPSCLKEJUBSD2RSVWZ4YHF3VMFAIGWA'
 };
 
 class PixelKalePasskey {
