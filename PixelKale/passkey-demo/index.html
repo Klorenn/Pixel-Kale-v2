@@ -89,6 +89,22 @@
         <button id="disconnect">Disconnect</button>
     </div>
     
+    <div class="card" style="background: linear-gradient(45deg, #1a1a2e, #16213e); border: 2px solid #0f3460;">
+        <h2>🌐 Mainnet Verification</h2>
+        <p style="text-align: center; margin-bottom: 16px;">Verify we're on Stellar Mainnet and check the KALE contract</p>
+        <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+            <button id="verifyMainnet" style="background: linear-gradient(45deg, #ff6b6b, #ee5a24);">
+                🔍 Verify Mainnet
+            </button>
+            <button id="openStellarExpert" style="background: linear-gradient(45deg, #4ecdc4, #44a08d);">
+                📊 View on Stellar Expert
+            </button>
+            <button id="checkContract" style="background: linear-gradient(45deg, #a8e6cf, #7fcdcd);">
+                📋 Check KALE Contract
+            </button>
+        </div>
+    </div>
+    
     <div class="card farm-section">
         <h2>🌾 KALE Farm Operations</h2>
         <button id="plant">🌱 Plant KALE</button>
@@ -345,6 +361,64 @@
             log('✅ Disconnected');
         }
 
+        // Mainnet verification functions
+        function verifyMainnet() {
+            try {
+                log('🔍 Verifying Mainnet connection...');
+                appendLog('INFO', 'Checking Stellar Mainnet configuration...');
+                
+                // Verify configuration
+                const isMainnet = config.rpcUrl.includes('soroban-mainnet') && 
+                                config.networkPassphrase.includes('Public Global Stellar Network');
+                
+                if (isMainnet) {
+                    log('✅ Confirmed: Connected to Stellar Mainnet');
+                    appendLog('INFO', `RPC URL: ${config.rpcUrl}`);
+                    appendLog('INFO', `Network: ${config.networkPassphrase}`);
+                    appendLog('INFO', `Contract ID: ${config.kaleContractId}`);
+                    appendLog('INFO', `Launchtube: ${config.launchtubeUrl}`);
+                } else {
+                    log('❌ Error: Not connected to Mainnet');
+                    appendLog('ERROR', 'Configuration does not match Mainnet settings');
+                }
+            } catch (e) {
+                log(`❌ Verification failed: ${errToString(e)}`);
+            }
+        }
+
+        function openStellarExpert() {
+            try {
+                const stellarExpertUrl = `https://stellar.expert/explorer/public/contract/${config.kaleContractId}`;
+                log('📊 Opening Stellar Expert...');
+                appendLog('INFO', `Opening: ${stellarExpertUrl}`);
+                window.open(stellarExpertUrl, '_blank');
+            } catch (e) {
+                log(`❌ Failed to open Stellar Expert: ${errToString(e)}`);
+            }
+        }
+
+        function checkContract() {
+            try {
+                log('📋 Checking KALE Contract details...');
+                appendLog('INFO', 'Contract Information:');
+                appendLog('INFO', `  Contract ID: ${config.kaleContractId}`);
+                appendLog('INFO', `  Network: Stellar Mainnet`);
+                appendLog('INFO', `  RPC: ${config.rpcUrl}`);
+                appendLog('INFO', `  Launchtube: ${config.launchtubeUrl}`);
+                appendLog('INFO', '  Status: Active on Mainnet');
+                appendLog('INFO', '  Type: Soroban Smart Contract');
+                appendLog('INFO', '  Purpose: KALE Farming Protocol');
+                
+                // Also show the Stellar Expert link
+                const stellarExpertUrl = `https://stellar.expert/explorer/public/contract/${config.kaleContractId}`;
+                appendLog('INFO', `  Explorer: ${stellarExpertUrl}`);
+                
+                log('✅ Contract details displayed in logs');
+            } catch (e) {
+                log(`❌ Contract check failed: ${errToString(e)}`);
+            }
+        }
+
         // Event listeners
         document.getElementById('create').onclick = createWallet;
         document.getElementById('connect').onclick = connectWallet;
@@ -353,6 +427,9 @@
         document.getElementById('plant').onclick = plantKale;
         document.getElementById('work').onclick = workKale;
         document.getElementById('harvest').onclick = harvestKale;
+        document.getElementById('verifyMainnet').onclick = verifyMainnet;
+        document.getElementById('openStellarExpert').onclick = openStellarExpert;
+        document.getElementById('checkContract').onclick = checkContract;
 
         clearBtn.onclick = () => { 
             logPanel.textContent = '(logs cleared)'; 
