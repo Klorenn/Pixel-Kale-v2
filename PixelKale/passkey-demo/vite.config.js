@@ -3,7 +3,12 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   server: {
     port: 8080,
-    host: true
+    host: true,
+    cors: true,
+    headers: {
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Opener-Policy': 'same-origin'
+    }
   },
   build: {
     target: 'esnext',
@@ -12,6 +17,9 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['passkey-kit']
+    include: ['passkey-kit', '@stellar/stellar-sdk']
+  },
+  define: {
+    global: 'globalThis'
   }
 })
