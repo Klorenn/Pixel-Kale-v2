@@ -1,8 +1,8 @@
-// Hybrid PasskeyKit + Stellar SDK Integration for Mainnet
+// Working PasskeyKit + Stellar SDK Integration for Mainnet
 import * as StellarSdk from '@stellar/stellar-sdk';
 import { PasskeyKit, PasskeyServer } from 'passkey-kit';
 
-export class HybridPasskeyIntegration {
+export class WorkingPasskeyIntegration {
   constructor(config) {
     this.config = config;
     
@@ -22,9 +22,6 @@ export class HybridPasskeyIntegration {
       walletWasmHash: this.config.walletWasmHash,
       rpId: window.location.hostname,
       timeoutInSeconds: 30,
-      // Add mainnet specific configuration
-      horizonUrl: this.config.horizonUrl,
-      allowHttp: false,
     });
 
     // Initialize PasskeyServer
@@ -33,7 +30,6 @@ export class HybridPasskeyIntegration {
       launchtubeUrl: this.config.launchtubeUrl,
       launchtubeJwt: this.config.launchtubeJwt,
       forwardOnChain: true,
-      horizonUrl: this.config.horizonUrl,
     });
   }
 
@@ -62,7 +58,7 @@ export class HybridPasskeyIntegration {
     }
   }
 
-  // Create wallet with PasskeyKit
+  // Create wallet with PasskeyKit and WebAuthn
   async createWallet(name, description) {
     try {
       console.log('🔑 Creating wallet with PasskeyKit...');
@@ -70,7 +66,7 @@ export class HybridPasskeyIntegration {
       // First test connection
       await this.testConnection();
       
-      // Create wallet using PasskeyKit
+      // Create wallet using PasskeyKit (this will trigger WebAuthn)
       const result = await this.passkeyKit.createWallet(name, description);
       
       console.log(`✅ Wallet created: contractId=${result.contractId}`);

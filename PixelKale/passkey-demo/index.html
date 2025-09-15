@@ -129,9 +129,9 @@
     </div>
 
     <script type="module">
-        import { SimpleStellarIntegration } from './simple-stellar-integration.js';
+        import { WorkingPasskeyIntegration } from './working-passkey-integration.js';
         
-        // Configuration for Stellar Mainnet
+        // Configuration for Stellar Mainnet with PasskeyKit
         const config = {
             rpcUrl: 'https://soroban-mainnet.stellar.org',
             networkPassphrase: 'Public Global Stellar Network ; September 2015',
@@ -142,8 +142,8 @@
             kaleContractId: 'CDL74RF5BLYR2YBLCCI7F5FB6TPSCLKEJUBSD2RSVWZ4YHF3VMFAIGWA'
         };
 
-        // Initialize Simple Stellar Integration
-        const stellarIntegration = new SimpleStellarIntegration(config);
+        // Initialize Working Passkey Integration
+        const passkeyIntegration = new WorkingPasskeyIntegration(config);
 
         // State
         let keyId = '';
@@ -218,47 +218,41 @@
             return jwt;
         }
 
-        // Test Stellar Mainnet connection
+        // Create wallet with PasskeyKit and WebAuthn
         async function createWallet() {
             try {
-                log('🔑 Testing Stellar Mainnet connection...');
-                appendLog('INFO', 'Connecting to Stellar Mainnet...');
+                log('🔑 Creating wallet with PasskeyKit...');
+                appendLog('INFO', 'Initializing WebAuthn credential creation...');
+                appendLog('INFO', 'This will open your browser\'s passkey dialog');
                 
-                // Test connection first
-                const connectionTest = await stellarIntegration.testConnection();
-                appendLog('INFO', `✅ Connection successful! Latest ledger: ${connectionTest.latestLedger}`);
+                // Create wallet using PasskeyKit (this will trigger WebAuthn)
+                const result = await passkeyIntegration.createAndSendWallet('PixelKale', 'KALE Farmer');
                 
-                // Get network info
-                const networkInfo = await stellarIntegration.getNetworkInfo();
-                appendLog('INFO', `Network: ${networkInfo.network}`);
-                appendLog('INFO', `Base Fee: ${networkInfo.baseFee} stroops`);
-                
-                // Simulate wallet creation for now
-                keyId = 'mainnet_key_' + Date.now();
-                contractId = 'mainnet_contract_' + Math.random().toString(36).substr(2, 9);
+                keyId = result.keyId;
+                contractId = result.contractId;
                 isConnected = true;
                 
                 // Save to storage
-                stellarIntegration.saveToStorage(keyId, contractId);
+                passkeyIntegration.saveToStorage(keyId, contractId);
                 
-                log(`✅ Mainnet connection verified! Ready for farming.`);
+                log(`✅ Wallet created and deployed successfully!`);
                 appendLog('INFO', `KeyId: ${keyId}`);
                 appendLog('INFO', `ContractId: ${contractId}`);
+                appendLog('INFO', `Transaction Hash: ${result.txHash}`);
+                appendLog('INFO', `Ledger: ${result.ledger}`);
                 appendLog('INFO', `Network: Stellar Mainnet`);
-                appendLog('INFO', `RPC: ${config.rpcUrl}`);
-                appendLog('INFO', `Horizon: ${config.horizonUrl}`);
                 
             } catch (e) {
-                log(`❌ Connection failed: ${errToString(e)}`);
+                log(`❌ Create failed: ${errToString(e)}`);
                 appendLog('ERROR', `Error details: ${e.message}`);
-                appendLog('ERROR', 'Make sure you have internet connection and mainnet is accessible');
+                appendLog('ERROR', 'Make sure WebAuthn is supported and you have a passkey device');
             }
         }
 
         async function connectWallet() {
             try {
                 // Load from storage
-                const stored = stellarIntegration.loadFromStorage();
+                const stored = passkeyIntegration.loadFromStorage();
                 
                 if (!stored) {
                     log('❌ No saved wallet found. Create a wallet first.');
@@ -267,13 +261,13 @@
                 
                 log('🔌 Connecting to wallet...');
                 appendLog('INFO', `Connecting to KeyId: ${stored.keyId}`);
+                appendLog('INFO', 'This will trigger WebAuthn authentication');
                 
-                // Test mainnet connection
-                const connectionTest = await stellarIntegration.testConnection();
-                appendLog('INFO', `✅ Mainnet connection verified! Latest ledger: ${connectionTest.latestLedger}`);
+                // Connect using PasskeyKit (this will trigger WebAuthn)
+                const result = await passkeyIntegration.connectWallet(stored.keyId, stored.contractId);
                 
-                keyId = stored.keyId;
-                contractId = stored.contractId;
+                keyId = result.keyId;
+                contractId = result.contractId;
                 isConnected = true;
                 
                 log(`✅ Connected successfully!`);
@@ -366,7 +360,7 @@
             keyId = '';
             contractId = '';
             isConnected = false;
-            stellarIntegration.clearStorage();
+            passkeyIntegration.clearStorage();
             log('✅ Disconnected');
         }
 
@@ -377,8 +371,8 @@
                 appendLog('INFO', 'Testing Stellar Mainnet connection...');
 
                 // Test actual connection
-                const connectionTest = await stellarIntegration.testConnection();
-                const networkInfo = await stellarIntegration.getNetworkInfo();
+                const connectionTest = await passkeyIntegration.testConnection();
+                const networkInfo = await passkeyIntegration.getNetworkInfo();
 
                 log('✅ Confirmed: Connected to Stellar Mainnet');
                 appendLog('INFO', `RPC URL: ${config.rpcUrl}`);
@@ -388,7 +382,7 @@
                 appendLog('INFO', `Base Fee: ${networkInfo.baseFee} stroops`);
                 appendLog('INFO', `Contract ID: ${config.kaleContractId}`);
                 appendLog('INFO', `Launchtube: ${config.launchtubeUrl}`);
-                appendLog('INFO', `Stellar SDK: Ready for transactions`);
+                appendLog('INFO', `PasskeyKit: Ready for WebAuthn`);
                 
             } catch (e) {
                 log(`❌ Verification failed: ${errToString(e)}`);
