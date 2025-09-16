@@ -5,10 +5,7 @@ export default defineConfig({
     port: 8080,
     host: true,
     cors: true,
-    headers: {
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Opener-Policy': 'same-origin'
-    }
+    // https: true // Temporalmente deshabilitado para pruebas
   },
   build: {
     target: 'esnext',
