@@ -228,14 +228,33 @@ export class PasskeyIntegration {
     localStorage.removeItem('pixelkale:lt_jwt');
   }
 
-  // Verificar soporte de passkey
-  async hasPasskeySupport() {
+  // Verificar soporte de passkey (método estático)
+  static async hasPasskeySupport() {
     try {
-      return !!(window.PublicKeyCredential &&
-        await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+      return !!(
+        typeof window !== 'undefined' &&
+        'PublicKeyCredential' in window &&
+        typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function' &&
+        await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+      );
     } catch (e) {
       console.error('Error checking passkey support:', e);
       return false;
     }
+  }
+}
+
+// Función utilitaria exportada para verificar soporte de passkey
+export async function hasPasskeySupport() {
+  try {
+    return !!(
+      typeof window !== 'undefined' &&
+      'PublicKeyCredential' in window &&
+      typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function' &&
+      await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+    );
+  } catch (e) {
+    console.error('Error checking passkey support:', e);
+    return false;
   }
 }
