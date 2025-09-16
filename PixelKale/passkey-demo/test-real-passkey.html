@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Real Passkey Integration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+        button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4CAF50; }
+        .error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+        .info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196F3; }
+        .warning { background: rgba(255, 152, 0, 0.2); border: 1px solid #FF9800; }
+        .config-input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.supported { background: #4CAF50; color: white; }
+        .status.not-supported { background: #f44336; color: white; }
+        .status.unknown { background: #FF9800; color: white; }
+        .biometric-prompt {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            border: 2px dashed #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 Test Real Passkey Integration</h1>
+        <p>Prueba la integración REAL de PasskeyKit con biometría</p>
+
+        <!-- Verificación de requisitos -->
+        <div class="test-section">
+            <h3>🔍 Verificación de Requisitos</h3>
+            <div id="requirementsCheck">
+                <p>Verificando requisitos...</p>
+            </div>
+        </div>
+
+        <!-- Configuración -->
+        <div class="test-section">
+            <h3>⚙️ Configuración</h3>
+            <div>
+                <label>RPC URL:</label>
+                <input type="text" id="rpcUrl" class="config-input" 
+                       value="https://soroban-testnet.stellar.org">
+            </div>
+            <div>
+                <label>Network Passphrase:</label>
+                <input type="text" id="networkPassphrase" class="config-input" 
+                       value="Test SDF Network ; September 2015">
+            </div>
+            <div>
+                <label>Wallet WASM Hash:</label>
+                <input type="text" id="walletWasmHash" class="config-input" 
+                       value="placeholder-hash" placeholder="Necesario para producción">
+            </div>
+            <div>
+                <label>Launchtube URL:</label>
+                <input type="text" id="launchtubeUrl" class="config-input" 
+                       value="https://launchtube.xyz">
+            </div>
+            <div>
+                <label>Launchtube JWT:</label>
+                <input type="text" id="launchtubeJwt" class="config-input" 
+                       value="placeholder-jwt" placeholder="Necesario para enviar transacciones">
+            </div>
+        </div>
+
+        <!-- Test Real de Passkey -->
+        <div class="test-section">
+            <h3>🔐 Test Real de Passkey (Biometría)</h3>
+            <div class="biometric-prompt">
+                <p>⚠️ <strong>IMPORTANTE:</strong> Este test intentará abrir la biometría real de tu dispositivo</p>
+                <p>Se abrirá el prompt de Windows Hello, Touch ID, Face ID, etc.</p>
+            </div>
+            <button onclick="testRealPasskeySupport()" id="supportBtn">1. Verificar Soporte Real</button>
+            <button onclick="testRealCreateWallet()" id="createBtn" disabled>2. Crear Wallet con Biometría</button>
+            <button onclick="testRealConnectWallet()" id="connectBtn" disabled>3. Conectar Wallet</button>
+            <div id="realResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Estado -->
+        <div class="test-section">
+            <h3>📊 Estado</h3>
+            <div id="status">
+                <p>Soporte: <span id="supportStatus" class="status unknown">Verificando...</span></p>
+                <p>Instancia: <span id="instanceStatus" class="status not-supported">No creada</span></p>
+                <p>Wallet: <span id="walletStatus" class="status not-supported">No creado</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Importar la integración real de Passkey
+        import { PasskeyIntegration, hasPasskeySupport } from './passkey-integration.js';
+
+        // Variables globales
+        let passkeyInstance = null;
+        let createdWallet = null;
+
+        // Función para mostrar resultados
+        function showResult(message, type = 'info') {
+            const element = document.getElementById('realResult');
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.textContent = message;
+        }
+
+        // Función para actualizar estado
+        function updateStatus(statusId, status, text) {
+            const element = document.getElementById(statusId);
+            element.className = `status ${status}`;
+            element.textContent = text;
+        }
+
+        // Verificar requisitos al cargar
+        async function checkRequirements() {
+            const requirements = document.getElementById('requirementsCheck');
+            
+            const checks = {
+                https: window.location.protocol === 'https:' || window.location.hostname === 'localhost',
+                webAuthn: !!window.PublicKeyCredential,
+                platformAuth: false,
+                secureContext: window.isSecureContext || window.location.hostname === 'localhost'
+            };
+
+            if (checks.webAuthn) {
+                try {
+                    checks.platformAuth = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                } catch (e) {
+                    console.warn('Error checking platform auth:', e);
+                }
+            }
+
+            const allGood = checks.https && checks.webAuthn && checks.platformAuth && checks.secureContext;
+
+            requirements.innerHTML = `
+                <p>🔒 HTTPS: ${checks.https ? '✅' : '❌'} ${checks.https ? 'Correcto' : 'Necesario'}</p>
+                <p>🌐 WebAuthn: ${checks.webAuthn ? '✅' : '❌'} ${checks.webAuthn ? 'Soportado' : 'No soportado'}</p>
+                <p>🔐 Platform Auth: ${checks.platformAuth ? '✅' : '❌'} ${checks.platformAuth ? 'Disponible' : 'No disponible'}</p>
+                <p>🛡️ Secure Context: ${checks.secureContext ? '✅' : '❌'} ${checks.secureContext ? 'Correcto' : 'Necesario'}</p>
+                <p><strong>Estado: ${allGood ? '🎉 LISTO PARA PASSKEYS' : '⚠️ REQUIERE CONFIGURACIÓN'}</strong></p>
+            `;
+
+            if (allGood) {
+                document.getElementById('supportBtn').disabled = false;
+            }
+        }
+
+        // Test 1: Verificar soporte real
+        window.testRealPasskeySupport = async function() {
+            try {
+                showResult('Verificando soporte real de Passkey...', 'info');
+                
+                // Usar la función utilitaria exportada
+                const supported = await hasPasskeySupport();
+                
+                if (supported) {
+                    showResult('✅ Passkey completamente soportado!\nPuedes proceder a crear wallets con biometría.', 'success');
+                    updateStatus('supportStatus', 'supported', 'Sí');
+                    document.getElementById('createBtn').disabled = false;
+                } else {
+                    showResult('❌ Passkey no soportado en este navegador/dispositivo.\nVerifica que tengas:\n- Chrome 67+, Firefox 60+, Safari 13+, Edge 18+\n- Dispositivo con biometría configurada\n- Contexto seguro (HTTPS)', 'error');
+                    updateStatus('supportStatus', 'not-supported', 'No');
+                }
+            } catch (error) {
+                showResult(`Error verificando soporte: ${error.message}`, 'error');
+                updateStatus('supportStatus', 'not-supported', 'Error');
+            }
+        };
+
+        // Test 2: Crear wallet real con biometría
+        window.testRealCreateWallet = async function() {
+            try {
+                showResult('🔐 Creando wallet con biometría...\nSe abrirá el prompt de autenticación biológica.', 'info');
+                
+                // Obtener configuración
+                const config = {
+                    rpcUrl: document.getElementById('rpcUrl').value,
+                    networkPassphrase: document.getElementById('networkPassphrase').value,
+                    walletWasmHash: document.getElementById('walletWasmHash').value,
+                    launchtubeUrl: document.getElementById('launchtubeUrl').value,
+                    launchtubeJwt: document.getElementById('launchtubeJwt').value,
+                };
+
+                // Crear instancia real
+                passkeyInstance = new PasskeyIntegration(config);
+                
+                // Crear wallet (esto debería abrir la biometría)
+                const wallet = await passkeyInstance.createWallet(
+                    'PixelKale Test Wallet', 
+                    'Wallet de prueba para PixelKale con biometría'
+                );
+
+                createdWallet = wallet;
+
+                const message = `🎉 Wallet creado exitosamente con biometría!
+Contract ID: ${wallet.contractId}
+Key ID: ${wallet.keyId}
+Key ID Base64: ${wallet.keyIdBase64}
+Signed TX: ${wallet.signedTx ? 'Generada' : 'No generada'}
+
+¡La biometría funcionó correctamente!`;
+
+                showResult(message, 'success');
+                updateStatus('instanceStatus', 'supported', 'Creada');
+                updateStatus('walletStatus', 'supported', 'Creado');
+                document.getElementById('connectBtn').disabled = false;
+
+            } catch (error) {
+                let errorMessage = `Error creando wallet: ${error.message}`;
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMessage = '❌ Biometría cancelada o no permitida.\nAsegúrate de tener un dispositivo biométrico configurado.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage = '❌ WebAuthn no soportado en este navegador.';
+                } else if (error.name === 'InvalidStateError') {
+                    errorMessage = '❌ Estado inválido. Intenta refrescar la página.';
+                } else if (error.name === 'TimeoutError') {
+                    errorMessage = '❌ Tiempo de espera agotado. Intenta de nuevo.';
+                }
+
+                showResult(errorMessage, 'error');
+                updateStatus('walletStatus', 'not-supported', 'Error');
+            }
+        };
+
+        // Test 3: Conectar wallet
+        window.testRealConnectWallet = async function() {
+            if (!passkeyInstance || !createdWallet) {
+                showResult('Error: Primero crea un wallet', 'error');
+                return;
+            }
+
+            try {
+                showResult('🔌 Conectando wallet...\nSe abrirá el prompt de autenticación biológica.', 'info');
+                
+                const connected = await passkeyInstance.connectWallet(
+                    createdWallet.keyId, 
+                    createdWallet.contractId
+                );
+
+                const message = `✅ Wallet conectado exitosamente!
+Contract ID: ${connected.contractId}
+Key ID: ${connected.keyId}
+Key ID Base64: ${connected.keyIdBase64}
+
+¡La autenticación biométrica funcionó!`;
+
+                showResult(message, 'success');
+
+            } catch (error) {
+                let errorMessage = `Error conectando wallet: ${error.message}`;
+                
+                if (error.name === 'NotAllowedError') {
+                    errorMessage = '❌ Autenticación biométrica cancelada.';
+                } else if (error.name === 'NotSupportedError') {
+                    errorMessage = '❌ WebAuthn no soportado.';
+                }
+
+                showResult(errorMessage, 'error');
+            }
+        };
+
+        // Inicializar al cargar
+        window.addEventListener('load', () => {
+            checkRequirements();
+        });
+    </script>
+</body>
+</html>
