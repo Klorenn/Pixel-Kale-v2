@@ -6,27 +6,33 @@ export class PasskeyIntegration {
   constructor(config) {
     this.config = {
       rpId: window.location.hostname,
-      timeoutInSeconds: 30,
+      timeoutInSeconds: 60, // Aumentar de 30 a 60 segundos
       ...config
     };
 
-    this.account = new PasskeyKit({
-      rpcUrl: this.config.rpcUrl,
-      networkPassphrase: this.config.networkPassphrase,
-      walletWasmHash: this.config.walletWasmHash,
-      timeoutInSeconds: this.config.timeoutInSeconds,
-      WebAuthn: {
-        startRegistration,
-        startAuthentication
-      }
-    });
+    try {
+      this.account = new PasskeyKit({
+        rpcUrl: this.config.rpcUrl,
+        networkPassphrase: this.config.networkPassphrase,
+        walletWasmHash: this.config.walletWasmHash,
+        timeoutInSeconds: this.config.timeoutInSeconds,
+        WebAuthn: {
+          startRegistration,
+          startAuthentication
+        }
+      });
 
-    this.server = new PasskeyServer({
-      rpcUrl: this.config.rpcUrl,
-      launchtubeUrl: this.config.launchtubeUrl,
-      launchtubeJwt: this.config.launchtubeJwt,
-      forwardOnChain: true,
-    });
+      this.server = new PasskeyServer({
+        rpcUrl: this.config.rpcUrl,
+        launchtubeUrl: this.config.launchtubeUrl,
+        launchtubeJwt: this.config.launchtubeJwt,
+        forwardOnChain: true,
+      });
+      
+    } catch (error) {
+      console.error('Error initializing PasskeyIntegration:', error);
+      throw error;
+    }
   }
 
   // Validar JWT
@@ -55,11 +61,21 @@ export class PasskeyIntegration {
     }
   }
 
-  // Crear wallet con passkey
+  // Crear wallet con mejor manejo de errores
   async createWallet(name, description) {
     try {
       console.log('🔑 Creating wallet...');
       
+      // Verificar contexto seguro antes de proceder
+      if (!window.isSecureContext && location.hostname !== 'localhost') {
+        throw new Error('WebAuthn requires a secure context (HTTPS or localhost)');
+      }
+
+      // Verificar soporte de WebAuthn
+      if (!window.PublicKeyCredential) {
+        throw new Error('WebAuthn is not supported in this browser');
+      }
+
       const res = await this.account.createWallet(name, description);
       
       console.log(`✅ Created wallet: contractId=${res.contractId}`);
@@ -72,7 +88,21 @@ export class PasskeyIntegration {
       };
     } catch (error) {
       console.error('Create wallet error:', error);
-      throw new Error(`Failed to create wallet: ${error.message}`);
+      
+      // Proporcionar mensajes de error más específicos
+      if (error.name === 'NotAllowedError') {
+        throw new Error('Passkey creation was cancelled or not allowed. Make sure you have a passkey device configured.');
+      } else if (error.name === 'NotSupportedError') {
+        throw new Error('WebAuthn is not supported in this browser. Use Chrome 67+, Firefox 60+, Safari 13+, or Edge 18+.');
+      } else if (error.name === 'InvalidStateError') {
+        throw new Error('Invalid state for passkey creation. Try refreshing the page.');
+      } else if (error.name === 'TimeoutError') {
+        throw new Error('Passkey creation timed out. Please try again.');
+      } else if (error.message.includes('secure context')) {
+        throw new Error('WebAuthn requires a secure context. Use HTTPS or localhost.');
+      } else {
+        throw new Error(`Failed to create wallet: ${error.message}`);
+      }
     }
   }
 
@@ -196,5 +226,16 @@ export class PasskeyIntegration {
     localStorage.removeItem('pixelkale:keyId');
     localStorage.removeItem('pixelkale:contractId');
     localStorage.removeItem('pixelkale:lt_jwt');
+  }
+
+  // Verificar soporte de passkey
+  async hasPasskeySupport() {
+    try {
+      return !!(window.PublicKeyCredential &&
+        await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+    } catch (e) {
+      console.error('Error checking passkey support:', e);
+      return false;
+    }
   }
 }

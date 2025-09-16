@@ -132,7 +132,7 @@
     </div>
 
     <script type="module">
-        import { PasskeyIntegration } from './passkey-integration-simple.js';
+        import { PasskeyIntegration } from './passkey-integration.js';
         
         // Configuration for Stellar Mainnet with PasskeyKit
         const config = {
@@ -183,7 +183,7 @@
             return JSON.stringify(e);
         }
 
-        // JWT validation
+        // JWT validation and management
         function validateJWT(jwt) {
             try {
                 const parts = jwt.split('.');
@@ -192,8 +192,32 @@
                 const payload = JSON.parse(atob(parts[1]));
                 const now = Math.floor(Date.now() / 1000);
                 
+                // Check expiration
                 if (now > payload.exp) {
                     appendLog('ERROR', 'JWT expired');
+                    return false;
+                }
+                
+                // Check if JWT is about to expire (less than 7 days)
+                const sevenDays = 7 * 24 * 60 * 60;
+                if (payload.exp - now < sevenDays) {
+                    appendLog('WARN', 'JWT will expire soon. Get a new one from launchtube.xyz');
+                    appendLog('INFO', `JWT expires on: ${new Date(payload.exp * 1000)}`);
+                }
+                
+                // Validate required fields
+                if (!payload.iat || typeof payload.iat !== 'number') {
+                    appendLog('ERROR', 'JWT has invalid iat field');
+                    return false;
+                }
+                
+                if (!payload.sub || typeof payload.sub !== 'string') {
+                    appendLog('ERROR', 'JWT has invalid sub field');
+                    return false;
+                }
+                
+                if (!payload.credits || typeof payload.credits !== 'number') {
+                    appendLog('ERROR', 'JWT has invalid credits field');
                     return false;
                 }
                 
@@ -202,6 +226,49 @@
                 appendLog('ERROR', `Invalid JWT: ${e}`);
                 return false;
             }
+        }
+        
+        // Get JWT with auto-renewal warning
+        async function getJWTWithRenewal() {
+            let jwt = localStorage.getItem('pixelkale:lt_jwt');
+            
+            if (!jwt) {
+                appendLog('INFO', 'No JWT found in storage');
+                jwt = await promptForJWT();
+            } else {
+                try {
+                    const payload = JSON.parse(atob(jwt.split('.')[1]));
+                    const now = Math.floor(Date.now() / 1000);
+                    const sevenDays = 7 * 24 * 60 * 60;
+                    
+                    if (now > payload.exp) {
+                        appendLog('ERROR', 'Stored JWT has expired');
+                        jwt = await promptForJWT();
+                    } else if (payload.exp - now < sevenDays) {
+                        appendLog('WARN', 'Stored JWT will expire soon');
+                        const renew = confirm('Your JWT will expire soon. Would you like to update it now?');
+                        if (renew) {
+                            jwt = await promptForJWT();
+                        }
+                    }
+                } catch (e) {
+                    appendLog('ERROR', 'Error parsing stored JWT');
+                    jwt = await promptForJWT();
+                }
+            }
+            
+            return jwt;
+        }
+        
+        // Prompt for new JWT
+        async function promptForJWT() {
+            const jwt = prompt('Enter Launchtube JWT (get from https://launchtube.xyz/gen):');
+            if (jwt && validateJWT(jwt)) {
+                localStorage.setItem('pixelkale:lt_jwt', jwt);
+                appendLog('INFO', 'New JWT stored successfully');
+                return jwt;
+            }
+            throw new Error('Invalid JWT provided');
         }
 
         // Get JWT from user
@@ -226,17 +293,40 @@
                 log('🔑 Creating wallet with PasskeyKit...');
                 appendLog('INFO', 'Using @simplewebauthn/browser for WebAuthn...');
                 
-                // Check if we're in a secure context
+                // Verificar contexto seguro
                 const isSecureContext = window.isSecureContext || location.protocol === 'https:' || location.hostname === 'localhost';
                 appendLog('INFO', `Secure Context: ${isSecureContext}`);
+                appendLog('INFO', `Protocol: ${location.protocol}`);
+                appendLog('INFO', `Hostname: ${location.hostname}`);
                 
                 if (!isSecureContext) {
                     throw new Error('WebAuthn requires a secure context (HTTPS or localhost)');
                 }
                 
+                // Verificar soporte de WebAuthn
+                const hasWebAuthn = !!(window.PublicKeyCredential && window.navigator.credentials);
+                appendLog('INFO', `WebAuthn Support: ${hasWebAuthn}`);
+                
+                if (!hasWebAuthn) {
+                    throw new Error('WebAuthn is not supported in this browser');
+                }
+                
+                // Verificar soporte de passkey
+                const hasPasskeySupport = await passkeyIntegration.hasPasskeySupport();
+                appendLog('INFO', `Passkey Support: ${hasPasskeySupport}`);
+                
+                if (!hasPasskeySupport) {
+                    throw new Error('No passkey device found. Please set up a passkey device first.');
+                }
+                
                 appendLog('INFO', 'Initializing passkey creation with @simplewebauthn/browser...');
                 appendLog('INFO', 'This will open your browser\'s passkey dialog');
                 appendLog('INFO', 'Make sure you have a passkey device (Touch ID, Face ID, Windows Hello, etc.)');
+                
+                // Verificar JWT antes de crear wallet
+                if (!passkeyIntegration.validateJWT(config.launchtubeJwt)) {
+                    throw new Error('Invalid or expired JWT. Please get a new JWT from launchtube.xyz');
+                }
                 
                 // Create wallet using PasskeyKit with @simplewebauthn/browser
                 appendLog('INFO', 'Calling PasskeyKit createAndSendWallet...');
@@ -277,6 +367,16 @@
                 } else if (e.message.includes('secure context')) {
                     appendLog('ERROR', 'WebAuthn requires a secure context');
                     appendLog('INFO', 'Use HTTPS or localhost to enable WebAuthn');
+                } else if (e.message.includes('passkey device')) {
+                    appendLog('ERROR', 'No passkey device found');
+                    appendLog('INFO', 'Set up Touch ID, Face ID, or Windows Hello on your device');
+                } else if (e.message.includes('JWT')) {
+                    appendLog('ERROR', 'JWT validation failed');
+                    appendLog('INFO', 'Get a new JWT from https://launchtube.xyz/gen');
+                } else if (e.message.includes('Failed to fetch')) {
+                    appendLog('ERROR', 'Network connection failed');
+                    appendLog('INFO', 'Check your internet connection');
+                    appendLog('INFO', 'Verify Launchtube service is available');
                 } else {
                     appendLog('ERROR', 'Make sure you have a passkey device and WebAuthn is enabled');
                     appendLog('INFO', 'Check browser console for more details');
