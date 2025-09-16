@@ -1,0 +1,17 @@
+[33mef833f3[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m)[m new
+[33m02ed938[m fix: corrige la implementación de hasPasskeySupport y agrega README para el demo de passkey
+[33m1e3da42[m fix: Create simplified passkey integration with better error handling
+[33mdc8750d[m fix: Integrate real PasskeyKit implementation with @simplewebauthn/browser
+[33m0fe9ef6[m feat: Add comprehensive WebAuthn diagnostics and testing
+[33m0f0759e[m fix: Add WebAuthn fallback for unsupported browsers
+[33md5b3a1d[m feat: Implement exact PasskeyKit code provided by user
+[33m9d5e6a2[m feat: Implement working PasskeyKit integration with WebAuthn
+[33mae04a01[m fix: Implement simple Stellar SDK integration to fix button functionality
+[33m823925a[m fix: Fix JavaScript syntax error in hybrid integration
+[33m8c762cb[m feat: Implement hybrid PasskeyKit + Stellar SDK integration
+[33md47f7c0[m fix: Resolve PasskeyKit connection issues and implement Stellar SDK integration
+[33m7d2ecbf[m feat: Integrate real PasskeyKit implementation
+[33mc60cccc[m feat: Add mainnet verification tools
+[33m99f82b7[m feat: Add mainnet JWT for testing
+[33m72efd37[m feat: Switch from testnet to mainnet configuration
+[33m4567857[m feat: Complete repository cleanup and passkey demo implementation
