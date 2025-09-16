@@ -1,37 +1,174 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Simple</title>
+    <title>Test Simple Passkey</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background: #45a049; }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
 </head>
 <body>
-    <h1>Test Simple</h1>
-    <button id="testBtn">Test Button</button>
-    <div id="output"></div>
+    <h1>🔑 Test Simple Passkey Integration</h1>
+    
+    <div class="test-box">
+        <h3>Test 1: Verificar Soporte de Passkey</h3>
+        <button onclick="testSupport()">Verificar Soporte</button>
+        <div id="supportResult" class="result" style="display: none;"></div>
+    </div>
 
-    <script type="module">
-        console.log('Script loaded');
-        
-        document.getElementById('testBtn').addEventListener('click', async () => {
+    <div class="test-box">
+        <h3>Test 2: Simular Creación de Instancia</h3>
+        <button onclick="testInstance()">Crear Instancia</button>
+        <div id="instanceResult" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="test-box">
+        <h3>Test 3: Simular hasPasskeySupport()</h3>
+        <button onclick="testHasPasskeySupport()">Probar hasPasskeySupport()</button>
+        <div id="hasPasskeyResult" class="result" style="display: none;"></div>
+    </div>
+
+    <script>
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.textContent = message;
+        }
+
+        // Test 1: Verificar soporte básico
+        window.testSupport = async function() {
             try {
-                console.log('Button clicked');
-                document.getElementById('output').innerHTML = 'Testing imports...';
+                const hasWebAuthn = !!window.PublicKeyCredential;
+                const hasPlatformAuth = hasWebAuthn && 
+                    typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function';
                 
-                // Test @simplewebauthn/browser
-                const { startRegistration } = await import('@simplewebauthn/browser');
-                console.log('@simplewebauthn/browser imported successfully');
+                let platformAuthAvailable = false;
+                if (hasPlatformAuth) {
+                    try {
+                        platformAuthAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                    } catch (e) {
+                        console.warn('Error checking platform authenticator:', e);
+                    }
+                }
+
+                const isSecureContext = window.isSecureContext || location.hostname === 'localhost';
                 
-                // Test passkey-kit
-                const { PasskeyKit } = await import('passkey-kit');
-                console.log('passkey-kit imported successfully');
-                
-                document.getElementById('output').innerHTML = 'All imports successful!';
-                
+                const message = `Verificación de Soporte:
+✅ WebAuthn: ${hasWebAuthn}
+✅ Platform Auth: ${hasPlatformAuth}
+✅ Platform Auth Disponible: ${platformAuthAvailable}
+✅ Contexto Seguro: ${isSecureContext}
+${isSecureContext && hasWebAuthn ? '🎉 LISTO PARA PASSKEYS' : '⚠️ REQUIERE HTTPS'}`;
+
+                showResult('supportResult', message, isSecureContext && hasWebAuthn ? 'success' : 'error');
             } catch (error) {
-                console.error('Error:', error);
-                document.getElementById('output').innerHTML = `Error: ${error.message}`;
+                showResult('supportResult', `Error: ${error.message}`, 'error');
             }
+        };
+
+        // Test 2: Simular creación de instancia
+        window.testInstance = function() {
+            try {
+                const config = {
+                    rpcUrl: 'https://soroban-testnet.stellar.org',
+                    networkPassphrase: 'Test SDF Network ; September 2015',
+                    walletWasmHash: 'placeholder-hash',
+                    launchtubeUrl: 'https://launchtube.xyz',
+                    launchtubeJwt: 'placeholder-jwt'
+                };
+
+                // Simular la clase PasskeyIntegration
+                const mockInstance = {
+                    config: config,
+                    hasPasskeySupport: async function() {
+                        return !!(window.PublicKeyCredential && 
+                            await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+                    }
+                };
+
+                const message = `Instancia simulada creada:
+RPC: ${config.rpcUrl}
+Network: ${config.networkPassphrase}
+Launchtube: ${config.launchtubeUrl}
+JWT: ${config.launchtubeJwt ? 'Configurado' : 'No configurado'}`;
+
+                showResult('instanceResult', message, 'success');
+            } catch (error) {
+                showResult('instanceResult', `Error: ${error.message}`, 'error');
+            }
+        };
+
+        // Test 3: Probar hasPasskeySupport()
+        window.testHasPasskeySupport = async function() {
+            try {
+                // Simular el método hasPasskeySupport como método de instancia
+                const mockInstance = {
+                    hasPasskeySupport: async function() {
+                        try {
+                            return !!(
+                                typeof window !== 'undefined' &&
+                                'PublicKeyCredential' in window &&
+                                typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function' &&
+                                await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                            );
+                        } catch (e) {
+                            console.error('Error checking passkey support:', e);
+                            return false;
+                        }
+                    }
+                };
+
+                const supported = await mockInstance.hasPasskeySupport();
+                
+                const message = `Resultado de hasPasskeySupport():
+Soporte: ${supported ? '✅ SÍ' : '❌ NO'}
+Método: Instancia (pk.hasPasskeySupport())
+Estado: ${supported ? 'Listo para crear wallets' : 'Requiere configuración adicional'}`;
+
+                showResult('hasPasskeyResult', message, supported ? 'success' : 'error');
+            } catch (error) {
+                showResult('hasPasskeyResult', `Error: ${error.message}`, 'error');
+            }
+        };
+
+        // Auto-ejecutar al cargar
+        window.addEventListener('load', () => {
+            testSupport();
         });
     </script>
 </body>

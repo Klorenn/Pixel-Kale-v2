@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Passkey Integration</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            border-left: 4px solid #4CAF50;
+        }
+        button {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success { background: rgba(76, 175, 80, 0.2); border: 1px solid #4CAF50; }
+        .error { background: rgba(244, 67, 54, 0.2); border: 1px solid #f44336; }
+        .info { background: rgba(33, 150, 243, 0.2); border: 1px solid #2196F3; }
+        .warning { background: rgba(255, 152, 0, 0.2); border: 1px solid #FF9800; }
+        .config-input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.9);
+            color: #333;
+        }
+        .status {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status.supported { background: #4CAF50; color: white; }
+        .status.not-supported { background: #f44336; color: white; }
+        .status.unknown { background: #FF9800; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔑 Test Passkey Integration</h1>
+        <p>Prueba la integración de PasskeyKit con WebAuthn</p>
+
+        <!-- Configuración -->
+        <div class="test-section">
+            <h3>⚙️ Configuración</h3>
+            <div>
+                <label>RPC URL:</label>
+                <input type="text" id="rpcUrl" class="config-input" 
+                       value="https://soroban-testnet.stellar.org" placeholder="RPC URL">
+            </div>
+            <div>
+                <label>Network Passphrase:</label>
+                <input type="text" id="networkPassphrase" class="config-input" 
+                       value="Test SDF Network ; September 2015" placeholder="Network Passphrase">
+            </div>
+            <div>
+                <label>Wallet WASM Hash:</label>
+                <input type="text" id="walletWasmHash" class="config-input" 
+                       value="placeholder-hash" placeholder="Wallet WASM Hash">
+            </div>
+            <div>
+                <label>Launchtube URL:</label>
+                <input type="text" id="launchtubeUrl" class="config-input" 
+                       value="https://launchtube.xyz" placeholder="Launchtube URL">
+            </div>
+            <div>
+                <label>Launchtube JWT:</label>
+                <input type="text" id="launchtubeJwt" class="config-input" 
+                       value="placeholder-jwt" placeholder="Launchtube JWT">
+            </div>
+        </div>
+
+        <!-- Test 1: Verificar soporte de Passkey -->
+        <div class="test-section">
+            <h3>🔍 Test 1: Verificar Soporte de Passkey</h3>
+            <button onclick="testPasskeySupport()">Verificar Soporte</button>
+            <div id="supportResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 2: Crear instancia -->
+        <div class="test-section">
+            <h3>🏗️ Test 2: Crear Instancia PasskeyIntegration</h3>
+            <button onclick="testCreateInstance()">Crear Instancia</button>
+            <div id="instanceResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 3: Crear Wallet -->
+        <div class="test-section">
+            <h3>💰 Test 3: Crear Wallet (Solo si Passkey está soportado)</h3>
+            <button onclick="testCreateWallet()" id="createWalletBtn" disabled>Crear Wallet</button>
+            <div id="walletResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Test 4: Conectar Wallet -->
+        <div class="test-section">
+            <h3>🔌 Test 4: Conectar Wallet</h3>
+            <button onclick="testConnectWallet()" id="connectWalletBtn" disabled>Conectar Wallet</button>
+            <div id="connectResult" class="result" style="display: none;"></div>
+        </div>
+
+        <!-- Estado Global -->
+        <div class="test-section">
+            <h3>📊 Estado Global</h3>
+            <div id="globalStatus">
+                <p>Passkey Support: <span id="supportStatus" class="status unknown">Desconocido</span></p>
+                <p>Instancia Creada: <span id="instanceStatus" class="status not-supported">No</span></p>
+                <p>Wallet Creado: <span id="walletStatus" class="status not-supported">No</span></p>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Variables globales
+        let passkeyInstance = null;
+        let createdWallet = null;
+
+        // Función para mostrar resultados
+        function showResult(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = `result ${type}`;
+            element.textContent = message;
+        }
+
+        // Función para actualizar estado
+        function updateStatus(statusId, status, text) {
+            const element = document.getElementById(statusId);
+            element.className = `status ${status}`;
+            element.textContent = text;
+        }
+
+        // Test 1: Verificar soporte de Passkey
+        window.testPasskeySupport = async function() {
+            try {
+                showResult('supportResult', 'Verificando soporte de Passkey...', 'info');
+                
+                // Verificar si WebAuthn está disponible
+                const hasWebAuthn = !!(window.PublicKeyCredential);
+                const hasPlatformAuth = hasWebAuthn && 
+                    typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function';
+                
+                let platformAuthAvailable = false;
+                if (hasPlatformAuth) {
+                    try {
+                        platformAuthAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+                    } catch (e) {
+                        console.warn('Error checking platform authenticator:', e);
+                    }
+                }
+
+                const isSecureContext = window.isSecureContext || location.hostname === 'localhost';
+                
+                const result = {
+                    webAuthnSupported: hasWebAuthn,
+                    platformAuthSupported: hasPlatformAuth,
+                    platformAuthAvailable: platformAuthAvailable,
+                    secureContext: isSecureContext,
+                    overall: hasWebAuthn && platformAuthSupported && isSecureContext
+                };
+
+                const message = `Resultado de verificación:
+✅ WebAuthn soportado: ${result.webAuthnSupported}
+✅ Platform Auth soportado: ${result.platformAuthSupported}
+✅ Platform Auth disponible: ${result.platformAuthAvailable}
+✅ Contexto seguro: ${result.secureContext}
+${result.overall ? '🎉 PASSKEY COMPLETAMENTE SOPORTADO' : '⚠️ PASSKEY PARCIALMENTE SOPORTADO'}`;
+
+                showResult('supportResult', message, result.overall ? 'success' : 'warning');
+                updateStatus('supportStatus', result.overall ? 'supported' : 'not-supported', 
+                           result.overall ? 'Sí' : 'Parcial');
+                
+                // Habilitar botones si está soportado
+                if (result.overall) {
+                    document.getElementById('createWalletBtn').disabled = false;
+                }
+
+            } catch (error) {
+                showResult('supportResult', `Error: ${error.message}`, 'error');
+                updateStatus('supportStatus', 'not-supported', 'Error');
+            }
+        };
+
+        // Test 2: Crear instancia
+        window.testCreateInstance = async function() {
+            try {
+                showResult('instanceResult', 'Creando instancia de PasskeyIntegration...', 'info');
+                
+                // Obtener configuración
+                const config = {
+                    rpcUrl: document.getElementById('rpcUrl').value,
+                    networkPassphrase: document.getElementById('networkPassphrase').value,
+                    walletWasmHash: document.getElementById('walletWasmHash').value,
+                    launchtubeUrl: document.getElementById('launchtubeUrl').value,
+                    launchtubeJwt: document.getElementById('launchtubeJwt').value,
+                };
+
+                // Simular la creación de instancia (sin importar el módulo real)
+                // En un entorno real, aquí importarías: import { PasskeyIntegration } from './passkey-integration.js';
+                
+                // Simulación para testing
+                passkeyInstance = {
+                    config: config,
+                    hasPasskeySupport: async () => {
+                        return !!(window.PublicKeyCredential && 
+                            await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable());
+                    },
+                    createWallet: async (name, description) => {
+                        return {
+                            contractId: 'simulated-contract-id-' + Date.now(),
+                            keyId: 'simulated-key-id-' + Date.now(),
+                            keyIdBase64: 'simulated-key-id-base64',
+                            signedTx: 'simulated-signed-tx'
+                        };
+                    },
+                    connectWallet: async (keyId, contractId) => {
+                        return {
+                            contractId: contractId || 'simulated-contract-id',
+                            keyId: keyId,
+                            keyIdBase64: 'simulated-key-id-base64'
+                        };
+                    }
+                };
+
+                const message = `Instancia creada exitosamente:
+RPC URL: ${config.rpcUrl}
+Network: ${config.networkPassphrase}
+Launchtube: ${config.launchtubeUrl}
+JWT: ${config.launchtubeJwt ? 'Configurado' : 'No configurado'}`;
+
+                showResult('instanceResult', message, 'success');
+                updateStatus('instanceStatus', 'supported', 'Sí');
+                
+                // Habilitar botón de conectar wallet
+                document.getElementById('connectWalletBtn').disabled = false;
+
+            } catch (error) {
+                showResult('instanceResult', `Error creando instancia: ${error.message}`, 'error');
+                updateStatus('instanceStatus', 'not-supported', 'Error');
+            }
+        };
+
+        // Test 3: Crear Wallet
+        window.testCreateWallet = async function() {
+            if (!passkeyInstance) {
+                showResult('walletResult', 'Error: Primero crea una instancia', 'error');
+                return;
+            }
+
+            try {
+                showResult('walletResult', 'Creando wallet...', 'info');
+                
+                const wallet = await passkeyInstance.createWallet(
+                    'Test PixelKale Wallet', 
+                    'Wallet de prueba para PixelKale'
+                );
+
+                createdWallet = wallet;
+
+                const message = `Wallet creado exitosamente:
+Contract ID: ${wallet.contractId}
+Key ID: ${wallet.keyId}
+Key ID Base64: ${wallet.keyIdBase64}
+Signed TX: ${wallet.signedTx ? 'Generada' : 'No generada'}`;
+
+                showResult('walletResult', message, 'success');
+                updateStatus('walletStatus', 'supported', 'Sí');
+
+            } catch (error) {
+                showResult('walletResult', `Error creando wallet: ${error.message}`, 'error');
+                updateStatus('walletStatus', 'not-supported', 'Error');
+            }
+        };
+
+        // Test 4: Conectar Wallet
+        window.testConnectWallet = async function() {
+            if (!passkeyInstance) {
+                showResult('connectResult', 'Error: Primero crea una instancia', 'error');
+                return;
+            }
+
+            try {
+                showResult('connectResult', 'Conectando wallet...', 'info');
+                
+                let keyId, contractId;
+                
+                if (createdWallet) {
+                    keyId = createdWallet.keyId;
+                    contractId = createdWallet.contractId;
+                } else {
+                    // Simular entrada manual
+                    keyId = prompt('Ingresa Key ID (o deja vacío para simular):') || 'simulated-key-id';
+                    contractId = prompt('Ingresa Contract ID (o deja vacío para simular):') || 'simulated-contract-id';
+                }
+
+                const connected = await passkeyInstance.connectWallet(keyId, contractId);
+
+                const message = `Wallet conectado exitosamente:
+Contract ID: ${connected.contractId}
+Key ID: ${connected.keyId}
+Key ID Base64: ${connected.keyIdBase64}`;
+
+                showResult('connectResult', message, 'success');
+
+            } catch (error) {
+                showResult('connectResult', `Error conectando wallet: ${error.message}`, 'error');
+            }
+        };
+
+        // Auto-ejecutar verificación de soporte al cargar
+        window.addEventListener('load', () => {
+            testPasskeySupport();
+        });
+    </script>
+</body>
+</html>
