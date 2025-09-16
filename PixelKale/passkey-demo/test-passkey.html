@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Passkey Integration</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 40px auto; 
+            padding: 16px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .card { 
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2); 
+            border-radius: 12px; 
+            padding: 20px;
+            margin: 16px 0;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+        }
+        button {
+            padding: 12px 20px;
+            margin: 8px 8px 8px 0;
+            cursor: pointer;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .log-panel {
+            background: rgba(0,0,0,0.4);
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            padding: 16px;
+            border-radius: 8px;
+            height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            border: 1px solid rgba(0,255,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Passkey Integration</h1>
+
+    <div class="card">
+        <h2>🔑 Test PasskeyKit</h2>
+        <button id="testInit">Test Initialization</button>
+        <button id="testCreate">Test Create Wallet</button>
+        <button id="testConnect">Test Connect Wallet</button>
+        <button id="testWebAuthn">Test WebAuthn Direct</button>
+    </div>
+
+    <div class="card">
+        <h3>📊 Logs</h3>
+        <div id="logPanel" class="log-panel">(logs will appear here...)</div>
+    </div>
+
+    <script type="module">
+        import { PasskeyIntegration } from './passkey-integration-simple.js';
+        
+        // Configuration for Stellar Mainnet
+        const config = {
+            rpcUrl: 'https://soroban-mainnet.stellar.org',
+            networkPassphrase: 'Public Global Stellar Network ; September 2015',
+            walletWasmHash: 'ecd990f0b45ca6817149b6175f79b32efb442f35731985a084131e8265c4cd90',
+            launchtubeUrl: 'https://launchtube.xyz',
+            launchtubeJwt: 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyMDcwN2Q3YWJmNTUxN2MyYTZiZTA1Y2JlOGMzZjE2YmE5NTI4NGFmYWM5NDVlN2RkNmY3NTk4MTE2NWJiNTgwIiwiZXhwIjoxNzczNjI5Mjg4LCJjcmVkaXRzIjoxMDAwMDAwMDAwMCwiaWF0IjoxNzU3OTA0NDg4fQ.GVXtIm2mQfg8VrqofupCTFeKtkfCnzIBjR2DnSQQ2Sg',
+            kaleContractId: 'CDL74RF5BLYR2YBLCCI7F5FB6TPSCLKEJUBSD2RSVWZ4YHF3VMFAIGWA'
+        };
+
+        let passkeyIntegration = null;
+
+        function log(message) {
+            console.log(message);
+            const logPanel = document.getElementById('logPanel');
+            logPanel.textContent += message + '\n';
+            logPanel.scrollTop = logPanel.scrollHeight;
+        }
+
+        // Test initialization
+        document.getElementById('testInit').addEventListener('click', async () => {
+            try {
+                log('🧪 Testing PasskeyIntegration initialization...');
+                passkeyIntegration = new PasskeyIntegration(config);
+                log('✅ PasskeyIntegration initialized successfully!');
+            } catch (error) {
+                log(`❌ Initialization failed: ${error.message}`);
+                console.error('Initialization error:', error);
+            }
+        });
+
+        // Test create wallet
+        document.getElementById('testCreate').addEventListener('click', async () => {
+            try {
+                if (!passkeyIntegration) {
+                    log('❌ Please initialize first');
+                    return;
+                }
+                
+                log('🧪 Testing wallet creation...');
+                const result = await passkeyIntegration.createWallet('TestApp', 'TestUser');
+                log(`✅ Wallet created: ${JSON.stringify(result, null, 2)}`);
+            } catch (error) {
+                log(`❌ Create wallet failed: ${error.message}`);
+                console.error('Create wallet error:', error);
+            }
+        });
+
+        // Test connect wallet
+        document.getElementById('testConnect').addEventListener('click', async () => {
+            try {
+                if (!passkeyIntegration) {
+                    log('❌ Please initialize first');
+                    return;
+                }
+                
+                log('🧪 Testing wallet connection...');
+                const result = await passkeyIntegration.connectWallet('test-key-id', 'test-contract-id');
+                log(`✅ Wallet connected: ${JSON.stringify(result, null, 2)}`);
+            } catch (error) {
+                log(`❌ Connect wallet failed: ${error.message}`);
+                console.error('Connect wallet error:', error);
+            }
+        });
+
+        // Test WebAuthn directly
+        document.getElementById('testWebAuthn').addEventListener('click', async () => {
+            try {
+                log('🧪 Testing @simplewebauthn/browser directly...');
+                
+                const { startRegistration } = await import('@simplewebauthn/browser');
+                log('✅ @simplewebauthn/browser imported successfully');
+                
+                const rawResponse = await startRegistration({
+                    optionsJSON: {
+                        challenge: 'dGVzdC1jaGFsbGVuZ2U',
+                        rp: {
+                            id: window.location.hostname,
+                            name: "Test App"
+                        },
+                        user: {
+                            id: 'dGVzdC11c2VyLWlk',
+                            name: "test@example.com",
+                            displayName: "Test User"
+                        },
+                        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+                        authenticatorSelection: {
+                            authenticatorAttachment: "platform",
+                            userVerification: "preferred"
+                        },
+                        timeout: 60000
+                    }
+                });
+                
+                log(`✅ WebAuthn test successful: ${rawResponse.id}`);
+            } catch (error) {
+                log(`❌ WebAuthn test failed: ${error.message}`);
+                console.error('WebAuthn test error:', error);
+            }
+        });
+
+        log('🚀 Test page loaded. Click "Test Initialization" first.');
+    </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Simple</title>
+</head>
+<body>
+    <h1>Test Simple</h1>
+    <button id="testBtn">Test Button</button>
+    <div id="output"></div>
+
+    <script type="module">
+        console.log('Script loaded');
+        
+        document.getElementById('testBtn').addEventListener('click', async () => {
+            try {
+                console.log('Button clicked');
+                document.getElementById('output').innerHTML = 'Testing imports...';
+                
+                // Test @simplewebauthn/browser
+                const { startRegistration } = await import('@simplewebauthn/browser');
+                console.log('@simplewebauthn/browser imported successfully');
+                
+                // Test passkey-kit
+                const { PasskeyKit } = await import('passkey-kit');
+                console.log('passkey-kit imported successfully');
+                
+                document.getElementById('output').innerHTML = 'All imports successful!';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('output').innerHTML = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

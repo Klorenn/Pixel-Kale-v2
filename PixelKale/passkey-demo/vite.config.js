@@ -17,7 +17,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['passkey-kit', '@stellar/stellar-sdk']
+    include: ['passkey-kit', '@stellar/stellar-sdk', '@simplewebauthn/browser']
   },
   define: {
     global: 'globalThis'
